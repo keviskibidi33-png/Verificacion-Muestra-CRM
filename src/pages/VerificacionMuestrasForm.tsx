@@ -15,12 +15,12 @@ const EQUIPMENT_OPTIONS = ['-', 'EQP-0255'];
 
 const ACCION_OPTIONS = [
     '-',
-    'NEOPRENO CARA SUPERIOR E INFERIOR',
-    'NEOPRENO CARA SUPERIOR',
-    'NEOPRENO CARA INFERIOR',
-    'CAPEO CARA SUPERIOR E INFERIOR',
-    'CAPEO CARA SUPERIOR',
-    'CAPEO CARA INFERIOR'
+    'NEOPRENO SUPERIOR E INFERIOR',
+    'NEOPRENO SUPERIOR',
+    'NEOPRENO INFERIOR',
+    'CAPEO SUPERIOR E INFERIOR',
+    'CAPEO SUPERIOR',
+    'CAPEO INFERIOR'
 ];
 
 const TIPO_TESTIGO_OPTIONS = ['-', '4in x 8in', '6in x 12in'];
@@ -183,6 +183,41 @@ const VerificacionMuestrasForm: React.FC = () => {
             const data = await apiService.getVerificacion(id);
             setVerificacionData({
                 ...data,
+                muestras_verificadas: (data.muestras_verificadas || []).map((m: any) => {
+                    // Normalización robusta de cadenas
+                    let normAccion = (m.accion_realizar || '-').toUpperCase().replace('CARA ', '').trim();
+                    // Asegurar que coincida con las opciones o usar '-'
+                    if (!ACCION_OPTIONS.includes(normAccion)) {
+                        // Intentar encontrar coincidencia parcial o dejar lo que viene si es manual
+                        const matched = ACCION_OPTIONS.find(opt => opt.toUpperCase() === normAccion);
+                        normAccion = matched || (m.accion_realizar || '-');
+                    }
+
+                    let normConformidad = (m.conformidad || '-');
+                    if (normConformidad.toUpperCase() === 'CONFORME') normConformidad = 'Ensayar';
+                    else if (normConformidad.toUpperCase() === 'NO CONFORME') normConformidad = 'No Ensayar';
+
+                    // Asegurar consistencia con opciones
+                    const matchedConf = CONFORMIDAD_OPTIONS.find(opt => opt.toLowerCase() === normConformidad.toLowerCase());
+                    normConformidad = matchedConf || '-';
+
+                    return {
+                        ...m,
+                        // Normalize case for strings like "Cumple"
+                        aceptacion_diametro: m.aceptacion_diametro?.toUpperCase(),
+                        planitud_superior_aceptacion: m.planitud_superior_aceptacion?.toUpperCase(),
+                        planitud_inferior_aceptacion: m.planitud_inferior_aceptacion?.toUpperCase(),
+                        planitud_depresiones_aceptacion: m.planitud_depresiones_aceptacion?.toUpperCase(),
+                        accion_realizar: normAccion,
+                        conformidad: normConformidad,
+                        // Handle legacy field mapping if needed
+                        perpendicularidad_sup1: m.perpendicularidad_sup1 !== null ? m.perpendicularidad_sup1 : m.perpendicularidad_p1,
+                        perpendicularidad_sup2: m.perpendicularidad_sup2 !== null ? m.perpendicularidad_sup2 : m.perpendicularidad_p2,
+                        perpendicularidad_inf1: m.perpendicularidad_inf1 !== null ? m.perpendicularidad_inf1 : m.perpendicularidad_p3,
+                        perpendicularidad_inf2: m.perpendicularidad_inf2 !== null ? m.perpendicularidad_inf2 : m.perpendicularidad_p4,
+                        perpendicularidad_medida: m.perpendicularidad_medida !== null ? m.perpendicularidad_medida : m.perpendicularidad_cumple,
+                    };
+                }),
                 fecha_verificacion: formatDateForInput(data.fecha_verificacion),
                 equipo_bernier: data.equipo_bernier || '-',
                 equipo_lainas_1: data.equipo_lainas_1 || '-',
