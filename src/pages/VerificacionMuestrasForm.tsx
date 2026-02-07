@@ -1,0 +1,642 @@
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import { useAutoSave } from '../hooks/useAutoSave';
+import { useAutoSaveDB } from '../hooks/useAutoSaveDB';
+import { apiService, api } from '../services/api';
+import {
+    Save, X, FileSpreadsheet, Plus, Trash2,
+    CheckCircle2, ChevronLeft
+} from 'lucide-react';
+
+// --- Constants & Options ---
+
+const EQUIPMENT_OPTIONS = ['-', 'EQP-0255'];
+
+const ACCION_OPTIONS = [
+    '-',
+    'NEOPRENO CARA SUPERIOR E INFERIOR',
+    'NEOPRENO CARA SUPERIOR',
+    'NEOPRENO CARA INFERIOR',
+    'CAPEO CARA SUPERIOR E INFERIOR',
+    'CAPEO CARA SUPERIOR',
+    'CAPEO CARA INFERIOR'
+];
+
+const TIPO_TESTIGO_OPTIONS = ['-', '4in x 8in', '6in x 12in'];
+
+const CONFORMIDAD_OPTIONS = ['-', 'Ensayar', 'No Ensayar'];
+
+// --- Types ---
+
+interface MuestraVerificada {
+    item_numero: number;
+    codigo_lem: string;
+    tipo_testigo: string;
+    // Diámetros
+    diametro_1_mm?: number | string;
+    diametro_2_mm?: number | string;
+    tolerancia_porcentaje?: number;
+    aceptacion_diametro?: string;
+    // Perpendicularidad
+    perpendicularidad_sup1?: boolean;
+    perpendicularidad_sup2?: boolean;
+    perpendicularidad_inf1?: boolean;
+    perpendicularidad_inf2?: boolean;
+    perpendicularidad_medida?: boolean;
+    // Planitud
+    planitud_superior_aceptacion?: string;
+    planitud_inferior_aceptacion?: string;
+    planitud_depresiones_aceptacion?: string;
+    accion_realizar?: string;
+    conformidad?: string;
+    // Longitud
+    longitud_1_mm?: number | string;
+    longitud_2_mm?: number | string;
+    longitud_3_mm?: number | string;
+    // Masa
+    masa_muestra_aire_g?: number | string;
+    pesar?: string;
+}
+
+interface VerificacionMuestrasData {
+    id?: number;
+    numero_verificacion: string;
+    codigo_documento: string;
+    version: string;
+    fecha_documento: string;
+    pagina: string;
+    verificado_por?: string;
+    fecha_verificacion?: string;
+    cliente?: string;
+    equipo_bernier?: string;
+    equipo_lainas_1?: string;
+    equipo_lainas_2?: string;
+    equipo_escuadra?: string;
+    equipo_balanza?: string;
+    nota?: string;
+    muestras_verificadas: MuestraVerificada[];
+}
+
+// --- Helper Components ---
+
+const InputField = React.memo(({ label, name, value, onChange, type = "text", placeholder = "", required = false, list }: any) => (
+    <div className="group">
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 ml-0.5">
+            {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        <input
+            type={type}
+            name={name}
+            value={value}
+            onChange={onChange}
+            list={list}
+            className="block w-full rounded-lg border-gray-200 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500/20 focus:bg-white transition-all duration-200 px-3 py-2.5 shadow-sm hover:border-gray-300"
+            placeholder={placeholder}
+            required={required}
+        />
+    </div>
+));
+
+const SelectField = React.memo(({ label, name, value, onChange, options }: any) => (
+    <div className="group">
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 ml-0.5">
+            {label}
+        </label>
+        <div className="relative">
+            <select
+                name={name}
+                value={value}
+                onChange={onChange}
+                className="block w-full rounded-lg border-gray-200 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500/20 focus:bg-white transition-all duration-200 px-3 py-2.5 shadow-sm hover:border-gray-300 appearance-none pr-8"
+            >
+                {options.map((opt: string) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+            </div>
+        </div>
+    </div>
+));
+// --- Main Component ---
+
+const VerificacionMuestrasForm: React.FC = () => {
+    const { id } = useParams<{ id: string }>();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+    const initialData: VerificacionMuestrasData = {
+        numero_verificacion: '',
+        codigo_documento: 'FOR-LAB-015',
+        version: '01',
+        fecha_documento: '28/01/2025',
+        pagina: '1 de 1',
+        verificado_por: '',
+        fecha_verificacion: new Date().toISOString().split('T')[0],
+        cliente: '',
+        equipo_bernier: '-',
+        equipo_lainas_1: '-',
+        equipo_lainas_2: '-',
+        equipo_escuadra: '-',
+        equipo_balanza: '-',
+        muestras_verificadas: []
+    };
+
+    const [verificacionData, setVerificacionData] = useState<VerificacionMuestrasData>(initialData);
+
+
+    useEffect(() => {
+        if (id) {
+            cargarVerificacion(parseInt(id));
+        }
+    }, [id]);
+
+    const cargarVerificacion = async (id: number) => {
+        try {
+            const data = await apiService.getVerificacion(id);
+            setVerificacionData({
+                ...data,
+                equipo_bernier: data.equipo_bernier || '-',
+                equipo_lainas_1: data.equipo_lainas_1 || '-',
+                equipo_lainas_2: data.equipo_lainas_2 || '-',
+                equipo_escuadra: data.equipo_escuadra || '-',
+                equipo_balanza: data.equipo_balanza || '-'
+            });
+        } catch (error) {
+            console.error('Error cargando verificación:', error);
+            toast.error('Error al cargar la verificación');
+        }
+    };
+
+    const { clearDraft } = useAutoSave({
+        storageKey: `verificacion-form-${id || 'new'}`,
+        data: verificacionData,
+        enabled: !id,
+        onLoad: (data) => {
+            if (!id && data) setVerificacionData(data);
+        }
+    });
+
+    useAutoSaveDB({
+        data: verificacionData,
+        enabled: !!id,
+        onSave: async (data) => {
+            if (id) {
+                await apiService.updateVerificacion(parseInt(id), data);
+                setLastSaved(new Date());
+            }
+        },
+        onError: () => toast.error('Error al guardar cambios automáticamente')
+    });
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setVerificacionData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const calculateValues = (muestra: MuestraVerificada): MuestraVerificada => {
+        const m = { ...muestra };
+        const parse = (val: any) => {
+            if (typeof val === 'number') return val;
+            if (!val) return 0;
+            return parseFloat(val) || 0;
+        };
+
+        const d1 = parse(m.diametro_1_mm);
+        const d2 = parse(m.diametro_2_mm);
+
+        if (d1 > 0 && d2 > 0) {
+            const diff = Math.abs(d1 - d2);
+            const tol = (diff / d1) * 100;
+            m.tolerancia_porcentaje = parseFloat(tol.toFixed(2));
+            m.aceptacion_diametro = tol <= 2.0 ? 'CUMPLE' : 'NO CUMPLE';
+        } else {
+            m.tolerancia_porcentaje = 0;
+            m.aceptacion_diametro = '';
+        }
+
+        const l1 = parse(m.longitud_1_mm);
+        const l2 = parse(m.longitud_2_mm);
+        const l3 = parse(m.longitud_3_mm);
+
+        if (d1 > 0 && d2 > 0 && l1 > 0 && l2 > 0) {
+            const avgD = (d1 + d2) / 2;
+            const ls = [l1, l2, l3].filter(v => v > 0);
+            if (ls.length > 0) {
+                const avgL = ls.reduce((a, b) => a + b, 0) / ls.length;
+                const ratio = avgL / avgD;
+                m.pesar = ratio < 1.75 ? 'PESAR' : 'NO PESAR';
+            }
+        } else {
+            m.pesar = '';
+        }
+
+        return m;
+    };
+
+    const handleMuestraChange = (index: number, field: keyof MuestraVerificada, value: any) => {
+        setVerificacionData(prev => {
+            const nuevasMuestras = [...prev.muestras_verificadas];
+            nuevasMuestras[index] = { ...nuevasMuestras[index], [field]: value };
+            nuevasMuestras[index] = calculateValues(nuevasMuestras[index]);
+            return { ...prev, muestras_verificadas: nuevasMuestras };
+        });
+    };
+
+    // Auto-complete LEM code on blur - adds -CO-YY suffix when only digits are present
+    const handleLemCodeBlur = (index: number, value: string) => {
+        if (/^\d+$/.test(value) && value.length >= 1) {
+            const year = new Date().getFullYear().toString().slice(-2);
+            const newValue = `${value}-CO-${year}`;
+            handleMuestraChange(index, 'codigo_lem', newValue);
+        }
+    };
+
+    const addMuestra = () => {
+        const item_numero = verificacionData.muestras_verificadas.length + 1;
+        const nuevaMuestra: MuestraVerificada = {
+            item_numero,
+            codigo_lem: '',
+            tipo_testigo: '-',
+            perpendicularidad_sup1: true,
+            perpendicularidad_sup2: true,
+            perpendicularidad_inf1: true,
+            perpendicularidad_inf2: true,
+            perpendicularidad_medida: true,
+            planitud_superior_aceptacion: '-',
+            planitud_inferior_aceptacion: '-',
+            planitud_depresiones_aceptacion: '-',
+            accion_realizar: '-',
+            conformidad: '-',
+            pesar: ''
+        };
+        setVerificacionData(prev => ({
+            ...prev,
+            muestras_verificadas: [...prev.muestras_verificadas, nuevaMuestra]
+        }));
+    };
+
+    const removeMuestra = (index: number) => {
+        setVerificacionData(prev => {
+            const filtered = prev.muestras_verificadas.filter((_, i) => i !== index);
+            const renumbered = filtered.map((m, i) => ({ ...m, item_numero: i + 1 }));
+            return { ...prev, muestras_verificadas: renumbered };
+        });
+    };
+
+    const handleSubmit = async () => {
+        if (!verificacionData.numero_verificacion) {
+            toast.error('Número de verificación es obligatorio');
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            if (id) {
+                await apiService.updateVerificacion(parseInt(id), verificacionData);
+                toast.success('Actualizado correctamente');
+            } else {
+                await api.post('/api/verificacion/', verificacionData);
+                toast.success('Guardado correctamente');
+                clearDraft();
+            }
+            setTimeout(() => window.history.back(), 1000);
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al guardar');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDeleteDraft = () => {
+        if (window.confirm('¿Estás seguro de que deseas eliminar el borrador guardado? Esta acción no se puede deshacer.')) {
+            clearDraft();
+            setVerificacionData(initialData);
+            toast.success('Borrador eliminado');
+        }
+    };
+
+    const descargarExcel = async () => {
+        if (!id) return;
+        try {
+            toast.loading('Generando Excel...');
+            const response = await api.get(`/api/verificacion/${id}/exportar`, { responseType: 'blob' });
+            apiService.downloadFile(response.data, `verificacion_${verificacionData.numero_verificacion}.xlsx`);
+            toast.dismiss();
+            toast.success('Excel descargado');
+        } catch (error) {
+            toast.dismiss();
+            toast.error('Error al descargar Excel');
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-100 py-8 px-4 sm:px-6 lg:px-8 font-sans">
+            <div className="max-w-[1920px] mx-auto">
+                <datalist id="perpendicularidad-options">
+                    <option value="-" />
+                    <option value="CUMPLE" />
+                    <option value="NO CUMPLE" />
+                </datalist>
+                <datalist id="planitud-options">
+                    <option value="-" />
+                    <option value="CUMPLE" />
+                    <option value="NO CUMPLE" />
+                </datalist>
+                <datalist id="tipo-testigo-options">
+                    {TIPO_TESTIGO_OPTIONS.map(opt => (
+                        <option key={opt} value={opt} />
+                    ))}
+                </datalist>
+                <datalist id="accion-options">
+                    {ACCION_OPTIONS.map(opt => (
+                        <option key={opt} value={opt} />
+                    ))}
+                </datalist>
+
+                {/* Header */}
+                <div className="bg-white rounded-xl shadow-md border border-slate-200 mb-6 overflow-hidden">
+                    <div className="border-b border-gray-100 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white">
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => window.history.back()} className="text-gray-400 hover:text-gray-600 transition-colors">
+                                <ChevronLeft size={24} />
+                            </button>
+                            <div>
+                                <h1 className="text-xl font-bold text-gray-900 tracking-tight">
+                                    {id ? 'Editar Verificación' : 'Nueva Verificación'}
+                                </h1>
+                                <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                    {id ? <span>ID: <span className="font-mono text-gray-700">#{id}</span></span> : 'Registro de nuevas muestras'}
+                                    {lastSaved && <span className="text-xs text-green-600 flex items-center ml-2"><CheckCircle2 size={12} className="mr-1" /> Guardado</span>}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            {!id && (
+                                <button type="button" onClick={handleDeleteDraft} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-rose-50 text-rose-700 text-sm font-medium rounded-lg hover:bg-rose-100 transition-colors border border-rose-200">
+                                    <Trash2 size={16} /> <span>Eliminar Borrador</span>
+                                </button>
+                            )}
+                            {id && (
+                                <button type="button" onClick={descargarExcel} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-200">
+                                    <FileSpreadsheet size={16} /> <span>Exportar Excel</span>
+                                </button>
+                            )}
+                            <button type="button" onClick={() => window.history.back()} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors border border-gray-200">
+                                <X size={16} /> <span>Cancelar</span>
+                            </button>
+                            <button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all focus:ring-2 focus:ring-blue-500/20 disabled:opacity-70">
+                                <Save size={16} /> <span>{isSubmitting ? 'Guardando...' : 'Guardar'}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-white">
+                        <InputField label="Número Verificación" name="numero_verificacion" value={verificacionData.numero_verificacion} onChange={handleInputChange} required placeholder="EJ: V-2024-001" />
+                        <InputField label="Verificado por" name="verificado_por" value={verificacionData.verificado_por || ''} onChange={handleInputChange} placeholder="Nombre del responsable" />
+                        <InputField label="Fecha Verificación" name="fecha_verificacion" value={verificacionData.fecha_verificacion || ''} onChange={handleInputChange} type="date" />
+                        <InputField label="Cliente" name="cliente" value={verificacionData.cliente || ''} onChange={handleInputChange} placeholder="Nombre del cliente" />
+                    </div>
+                </div>
+
+                {/* Table Section */}
+                <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-8 border border-gray-200">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full border-collapse">
+                            <thead>
+                                <tr>
+                                    {[
+                                        { t: 'N°' },
+                                        { t: 'Código LEM' },
+                                        { t: 'Tipo Testigo' },
+                                        { t: 'Diámetro 1 (mm)' },
+                                        { t: 'Diámetro 2 (mm)' },
+                                        { t: 'ΔΦ 2%>' },
+                                        { t: 'Aceptación' },
+                                        { t: 'SUP 1' },
+                                        { t: 'SUP 2' },
+                                        { t: 'INF 1' },
+                                        { t: 'INF 2' },
+                                        { t: 'Medida <0.5°' },
+                                        { t: 'C. Superior' },
+                                        { t: 'C. Inferior' },
+                                        { t: 'Depresiones' },
+                                        { t: 'Acción' },
+                                        { t: 'Conformidad' },
+                                        { t: 'Longitud 1' },
+                                        { t: 'Longitud 2' },
+                                        { t: 'Longitud 3' },
+                                        { t: 'Masa (g)' },
+                                        { t: 'Pesar' },
+                                        { t: 'Acciones' }
+                                    ].map((h, i) => {
+                                        const isAction = h.t === 'Acción';
+                                        const isLem = h.t === 'Código LEM';
+                                        let bgColor = 'bg-gray-50';
+
+                                        if (h.t.includes('Diámetro') || h.t.includes('ΔΦ') || h.t === 'Aceptación') bgColor = 'bg-sky-100';
+                                        else if (['SUP 1', 'SUP 2', 'INF 1', 'INF 2', 'Medida <0.5°'].includes(h.t)) bgColor = 'bg-orange-100';
+                                        else if (['C. Superior', 'C. Inferior', 'Depresiones'].includes(h.t)) bgColor = 'bg-emerald-100';
+                                        else if (h.t === 'Acción') bgColor = 'bg-indigo-100';
+                                        else if (h.t === 'Conformidad') bgColor = 'bg-violet-100';
+                                        else if (h.t.includes('Longitud')) bgColor = 'bg-slate-100';
+                                        else if (h.t === 'Masa (g)' || h.t === 'Pesar') bgColor = 'bg-rose-100';
+
+                                        return (
+                                            <th key={i} className={`px-2 py-3 border border-gray-300 text-[13px] font-black text-black uppercase tracking-tighter leading-tight ${isAction ? 'text-center' : 'text-left'} ${isLem ? 'min-w-[120px]' : ''} ${bgColor}`}>
+                                                {h.t}
+                                            </th>
+                                        );
+                                    })}
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200 ">
+                                {verificacionData.muestras_verificadas.map((muestra, index) => (
+                                    <tr key={index}>
+                                        <td className="px-3 py-2 border border-gray-300 text-[15px] font-normal text-black">{muestra.item_numero}</td>
+                                        <td className="px-3 py-2 border border-gray-300 min-w-[120px]">
+                                            <input
+                                                type="text"
+                                                value={muestra.codigo_lem}
+                                                onChange={(e) => handleMuestraChange(index, 'codigo_lem', e.target.value)}
+                                                onBlur={(e) => handleLemCodeBlur(index, e.target.value)}
+                                                className="w-full text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 text-black font-normal"
+                                                placeholder="Ej: 5858"
+                                            />
+                                        </td>
+                                        <td className="px-3 py-2 border border-gray-300">
+                                            <select
+                                                value={muestra.tipo_testigo}
+                                                onChange={(e) => handleMuestraChange(index, 'tipo_testigo', e.target.value)}
+                                                className="w-full text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer text-black font-normal"
+                                            >
+                                                {TIPO_TESTIGO_OPTIONS.map(opt => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                        <td className="px-3 py-2 border border-gray-300 bg-sky-50">
+                                            <input type="number" step="0.01" value={muestra.diametro_1_mm || ''} onChange={(e) => handleMuestraChange(index, 'diametro_1_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                        </td>
+                                        <td className="px-3 py-2 border border-gray-300 bg-sky-50">
+                                            <input type="number" step="0.01" value={muestra.diametro_2_mm || ''} onChange={(e) => handleMuestraChange(index, 'diametro_2_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                        </td>
+                                        <td className="px-3 py-2 border border-gray-300 text-[15px] font-normal text-black bg-sky-50">{muestra.tolerancia_porcentaje}%</td>
+                                        <td className="px-3 py-2 border border-gray-300 text-center bg-sky-50">
+                                            {muestra.aceptacion_diametro ? (
+                                                <span className="text-black font-normal text-[15px]">
+                                                    {muestra.aceptacion_diametro}
+                                                </span>
+                                            ) : <span className="text-gray-400">-</span>}
+                                        </td>
+                                        {/* Perpendicularidad */}
+                                        {['sup1', 'sup2', 'inf1', 'inf2', 'medida'].map((f) => {
+                                            const prop = `perpendicularidad_${f}` as keyof MuestraVerificada;
+                                            const boolVal = muestra[prop] as boolean | undefined;
+                                            const strVal = boolVal === true ? 'CUMPLE' : (boolVal === false ? 'NO CUMPLE' : '-');
+                                            return (
+                                                <td key={f} className="px-3 py-2 border border-gray-300 bg-orange-50">
+                                                    <select
+                                                        value={strVal}
+                                                        onChange={(e) => {
+                                                            const v = e.target.value;
+                                                            let newBool = undefined;
+                                                            if (v === 'CUMPLE') newBool = true;
+                                                            else if (v === 'NO CUMPLE') newBool = false;
+                                                            handleMuestraChange(index, prop, newBool);
+                                                        }}
+                                                        className="w-28 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer font-normal text-black"
+                                                    >
+                                                        <option value="-">-</option>
+                                                        <option value="CUMPLE">CUMPLE</option>
+                                                        <option value="NO CUMPLE">NO CUMPLE</option>
+                                                    </select>
+                                                </td>
+                                            );
+                                        })}
+                                        {/* Planitud */}
+                                        {['superior', 'inferior', 'depresiones'].map((f) => {
+                                            const prop = `planitud_${f}_aceptacion` as keyof MuestraVerificada;
+                                            const val = (muestra[prop] as string) || '-';
+                                            return (
+                                                <td key={f} className="px-3 py-2 border border-gray-300 text-center bg-emerald-50">
+                                                    <select
+                                                        value={val}
+                                                        onChange={(e) => handleMuestraChange(index, prop, e.target.value)}
+                                                        className="w-28 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer font-normal text-black"
+                                                    >
+                                                        <option value="-">-</option>
+                                                        <option value="CUMPLE">CUMPLE</option>
+                                                        <option value="NO CUMPLE">NO CUMPLE</option>
+                                                    </select>
+                                                </td>
+                                            );
+                                        })}
+                                        <td className="px-2 py-2 border border-gray-300 bg-indigo-50 min-w-[180px]">
+                                            <select
+                                                value={muestra.accion_realizar || '-'}
+                                                onChange={(e) => handleMuestraChange(index, 'accion_realizar', e.target.value)}
+                                                className="w-full text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer text-center font-normal text-black leading-tight py-1 whitespace-normal h-auto"
+                                            >
+                                                {ACCION_OPTIONS.map(opt => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                        <td className="px-3 py-2 border border-gray-300 bg-violet-50">
+                                            <select
+                                                value={muestra.conformidad || '-'}
+                                                onChange={(e) => handleMuestraChange(index, 'conformidad', e.target.value)}
+                                                className="w-28 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer text-center text-black font-normal"
+                                            >
+                                                {CONFORMIDAD_OPTIONS.map(opt => (
+                                                    <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                        <td className="px-3 py-2 border border-gray-300 bg-slate-50">
+                                            <input type="number" step="0.01" value={muestra.longitud_1_mm || ''} onChange={(e) => handleMuestraChange(index, 'longitud_1_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                        </td>
+                                        <td className="px-3 py-2 border border-gray-300 bg-slate-50">
+                                            <input type="number" step="0.01" value={muestra.longitud_2_mm || ''} onChange={(e) => handleMuestraChange(index, 'longitud_2_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                        </td>
+                                        <td className="px-3 py-2 border border-gray-300 bg-slate-50">
+                                            <input type="number" step="0.01" value={muestra.longitud_3_mm || ''} onChange={(e) => handleMuestraChange(index, 'longitud_3_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                        </td>
+                                        <td className="px-3 py-2 border border-gray-300 bg-rose-50">
+                                            <input type="number" step="0.001" value={muestra.masa_muestra_aire_g || ''} onChange={(e) => handleMuestraChange(index, 'masa_muestra_aire_g', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                        </td>
+                                        <td className="px-3 py-2 border border-gray-300 text-[15px] text-center bg-rose-50">
+                                            {muestra.pesar ? (
+                                                <span className="text-black font-normal">{muestra.pesar}</span>
+                                            ) : <span className="text-gray-400">-</span>}
+                                        </td>
+                                        <td className="px-3 py-2 flex gap-2">
+                                            <button type="button" onClick={() => removeMuestra(index)} className="hover:opacity-70 text-lg" title="Eliminar">🗑️</button>
+                                            <button type="button" onClick={() => {
+                                                const newMuestra = { ...muestra, item_numero: verificacionData.muestras_verificadas.length + 1 };
+                                                setVerificacionData(prev => ({
+                                                    ...prev,
+                                                    muestras_verificadas: [...prev.muestras_verificadas, newMuestra]
+                                                }));
+                                            }} className="hover:opacity-70 text-lg" title="Copiar">📋</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="p-4 bg-slate-50/50 border-t border-slate-200">
+                        <button onClick={addMuestra} className="inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-600 text-sm font-semibold rounded-lg hover:bg-blue-50 border border-blue-200 transition-all shadow-sm"><Plus size={16} /> Agregar Muestra</button>
+                    </div>
+                </div>
+
+                {/* Footer Section (Equipos y Notas) */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 bg-white rounded-xl shadow-md border border-slate-200 p-6">
+                        <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+                            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Equipos Utilizados</h3>
+                            <button
+                                type="button"
+                                onClick={() => setVerificacionData(prev => ({
+                                    ...prev,
+                                    equipo_bernier: 'EQP-0255',
+                                    equipo_lainas_1: 'EQP-0255',
+                                    equipo_lainas_2: 'EQP-0255',
+                                    equipo_escuadra: 'EQP-0255',
+                                    equipo_balanza: 'EQP-0255'
+                                }))}
+                                className="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1"
+                            >
+                                <CheckCircle2 size={12} /> Usar EQP-0255 en todos
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <SelectField label="Bernier" name="equipo_bernier" value={verificacionData.equipo_bernier} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
+                            <SelectField label="Lainas 1" name="equipo_lainas_1" value={verificacionData.equipo_lainas_1} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
+                            <SelectField label="Lainas 2" name="equipo_lainas_2" value={verificacionData.equipo_lainas_2} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
+                            <SelectField label="Escuadra" name="equipo_escuadra" value={verificacionData.equipo_escuadra} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
+                            <SelectField label="Balanza" name="equipo_balanza" value={verificacionData.equipo_balanza} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+                        <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide mb-4 border-b border-gray-100 pb-2">Notas Adicionales</h3>
+                        <textarea
+                            name="nota"
+                            value={verificacionData.nota || ''}
+                            onChange={handleInputChange}
+                            rows={4}
+                            className="block w-full rounded-lg border-gray-200 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500/20 px-3 py-3 resize-none"
+                            placeholder="Ingrese observaciones..."
+                        />
+                    </div>
+                </div>
+            </div >
+        </div >
+    );
+};
+
+export default VerificacionMuestrasForm;
