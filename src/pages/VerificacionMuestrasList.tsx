@@ -4,7 +4,7 @@ import ModuleLayout from '../components/layout/ModuleLayout';
 import Pagination from '../components/ui/Pagination';
 import DeleteConfirmModal from '../components/ui/DeleteConfirmModal';
 import { toast } from 'react-hot-toast';
-import { apiService } from '../services/api';
+import { apiService, api } from '../services/api';
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
 
 interface VerificacionMuestra {
@@ -77,21 +77,11 @@ const VerificacionMuestrasList: React.FC = () => {
 
     const generarExcel = async (id: number) => {
         try {
-            const response = await fetch(`/api/verificacion/${id}/generar-excel`, {
-                method: 'POST',
-            });
-
-            if (response.ok) {
-                await response.json();
-                alert('Excel generado exitosamente');
-                // Recargar la lista para actualizar el estado
-                cargarVerificaciones();
-            } else {
-                const error = await response.json();
-                alert(`Error: ${error.detail}`);
-            }
-        } catch (err) {
-            alert('Error generando Excel');
+            await api.post(`/api/verificacion/${id}/generar-excel`);
+            toast.success('Excel generado exitosamente');
+            cargarVerificaciones();
+        } catch (err: any) {
+            toast.error(err.response?.data?.detail || 'Error generando Excel');
         }
     };
 
@@ -128,23 +118,11 @@ const VerificacionMuestrasList: React.FC = () => {
 
     const descargarExcel = async (id: number) => {
         try {
-            const response = await fetch(`/api/verificacion/${id}/descargar-excel`);
-
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `verificacion_${id}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            } else {
-                alert('Error descargando Excel');
-            }
-        } catch (err) {
-            alert('Error descargando Excel');
+            const response = await api.get(`/api/verificacion/${id}/exportar`, { responseType: 'blob' });
+            apiService.downloadFile(response.data, `verificacion_${id}.xlsx`);
+            toast.success('Excel descargado');
+        } catch (err: any) {
+            toast.error('Error descargando Excel');
         }
     };
 
@@ -295,7 +273,7 @@ const VerificacionMuestrasList: React.FC = () => {
                                                 📊 Excel
                                             </button>
                                             <button
-                                                onClick={() => window.location.href = `/verificacion/${verificacion.id}`}
+                                                onClick={() => navigate(`/detalle/${verificacion.id}`)}
                                                 className="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-300 transition-colors"
                                                 title="Ver Detalles"
                                             >

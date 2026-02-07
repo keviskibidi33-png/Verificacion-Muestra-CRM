@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import DeleteConfirmModal from '../components/ui/DeleteConfirmModal';
 import { toast } from 'react-hot-toast';
+import { apiService, api } from '../services/api';
 
 interface MuestraVerificada {
     id: number;
@@ -52,17 +53,10 @@ const VerificacionMuestrasDetail: React.FC = () => {
     const cargarVerificacion = async (id: number) => {
         try {
             setLoading(true);
-            const response = await fetch(`/api/verificacion/${id}`);
-
-            if (response.ok) {
-                const data = await response.json();
-                setVerificacion(data);
-            } else {
-                const errorData = await response.json();
-                setError(`Error: ${errorData.detail || 'No se pudo cargar la verificación'}`);
-            }
-        } catch (err) {
-            setError('Error de conexión con el servidor');
+            const data = await apiService.getVerificacion(id);
+            setVerificacion(data);
+        } catch (err: any) {
+            setError(err.message || 'Error de conexión con el servidor');
         } finally {
             setLoading(false);
         }
@@ -72,19 +66,14 @@ const VerificacionMuestrasDetail: React.FC = () => {
         if (!verificacion) return;
 
         try {
-            const response = await fetch(`/api/verificacion/${verificacion.id}/generar-excel`, {
-                method: 'POST',
-            });
+            const response = await api.post(`/api/verificacion/${verificacion.id}/generar-excel`);
 
-            if (response.ok) {
+            if (response.status === 200 || response.status === 201) {
                 toast.success('Excel generado exitosamente');
-                cargarVerificacion(verificacion.id); // Recargar para mostrar el botón de descarga
-            } else {
-                const error = await response.json();
-                toast.error(`Error: ${error.detail}`);
+                cargarVerificacion(verificacion.id);
             }
-        } catch (err) {
-            toast.error('Error generando Excel');
+        } catch (err: any) {
+            toast.error(err.response?.data?.detail || 'Error generando Excel');
         }
     };
 
@@ -93,21 +82,11 @@ const VerificacionMuestrasDetail: React.FC = () => {
 
         setIsDeleting(true);
         try {
-            const response = await fetch(`/api/verificacion/${verificacion.id}`, {
-                method: 'DELETE',
-            });
-
-            if (response.ok) {
-                toast.success('Verificación eliminada exitosamente');
-                navigate('/verificacion');
-            } else {
-                const error = await response.json();
-                toast.error(`Error: ${error.detail}`);
-                setIsDeleting(false);
-                setShowDeleteModal(false);
-            }
-        } catch (err) {
-            toast.error('Error eliminando verificación');
+            await apiService.deleteVerificacion(verificacion.id);
+            toast.success('Verificación eliminada exitosamente');
+            navigate('/verificacion');
+        } catch (err: any) {
+            toast.error(err.response?.data?.detail || 'Error eliminando verificación');
             setIsDeleting(false);
             setShowDeleteModal(false);
         }
