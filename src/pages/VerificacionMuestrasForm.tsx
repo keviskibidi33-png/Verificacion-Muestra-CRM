@@ -120,6 +120,31 @@ const SelectField = React.memo(({ label, name, value, onChange, options }: any) 
         </div>
     </div>
 ));
+// --- Helper Functions ---
+
+const formatDateForInput = (dateStr: string | undefined): string => {
+    if (!dateStr) return '';
+    // If it's already YYYY-MM-DD, return it
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    // If it's DD/MM/YYYY, convert to YYYY-MM-DD
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+    return dateStr;
+};
+
+const formatDateForDB = (dateStr: string | undefined): string => {
+    if (!dateStr) return '';
+    // If it's YYYY-MM-DD, convert to DD/MM/YYYY
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    // If it's already ISO or other, we might want to normalize it
+    return dateStr;
+};
+
 // --- Main Component ---
 
 const VerificacionMuestrasForm: React.FC = () => {
@@ -131,7 +156,7 @@ const VerificacionMuestrasForm: React.FC = () => {
         numero_verificacion: '',
         codigo_documento: 'FOR-LAB-015',
         version: '01',
-        fecha_documento: '28/01/2025',
+        fecha_documento: new Date().toLocaleDateString('es-PE'),
         pagina: '1 de 1',
         verificado_por: '',
         fecha_verificacion: new Date().toISOString().split('T')[0],
@@ -158,6 +183,7 @@ const VerificacionMuestrasForm: React.FC = () => {
             const data = await apiService.getVerificacion(id);
             setVerificacionData({
                 ...data,
+                fecha_verificacion: formatDateForInput(data.fecha_verificacion),
                 equipo_bernier: data.equipo_bernier || '-',
                 equipo_lainas_1: data.equipo_lainas_1 || '-',
                 equipo_lainas_2: data.equipo_lainas_2 || '-',
@@ -293,11 +319,15 @@ const VerificacionMuestrasForm: React.FC = () => {
         }
         setIsSubmitting(true);
         try {
+            const dataToSave = {
+                ...verificacionData,
+                fecha_verificacion: formatDateForDB(verificacionData.fecha_verificacion)
+            };
             if (id) {
-                await apiService.updateVerificacion(parseInt(id), verificacionData);
+                await apiService.updateVerificacion(parseInt(id), dataToSave);
                 toast.success('Actualizado correctamente');
             } else {
-                await api.post('/api/verificacion/', verificacionData);
+                await api.post('/api/verificacion/', dataToSave);
                 toast.success('Guardado correctamente');
                 clearDraft();
             }
@@ -396,7 +426,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-white">
                         <InputField label="Número Verificación" name="numero_verificacion" value={verificacionData.numero_verificacion} onChange={handleInputChange} required placeholder="EJ: V-2024-001" />
                         <InputField label="Verificado por" name="verificado_por" value={verificacionData.verificado_por || ''} onChange={handleInputChange} placeholder="Nombre del responsable" />
-                        <InputField label="Fecha Verificación" name="fecha_verificacion" value={verificacionData.fecha_verificacion || ''} onChange={handleInputChange} type="date" />
+                        <InputField label="Fecha Verificación" name="fecha_verificacion" value={formatDateForInput(verificacionData.fecha_verificacion)} onChange={handleInputChange} type="date" />
                         <InputField label="Cliente" name="cliente" value={verificacionData.cliente || ''} onChange={handleInputChange} placeholder="Nombre del cliente" />
                     </div>
                 </div>
