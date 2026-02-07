@@ -1,0 +1,17 @@
+services:
+  verificacion-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-https://api.geofal.com.pe}
+    container_name: verificacion-muestras-frontend
+    ports:
+      - "3005:80"
+    restart: always
+    networks:
+      - coolify
+
+networks:
+  coolify:
+    external: true
