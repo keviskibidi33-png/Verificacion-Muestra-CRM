@@ -179,7 +179,7 @@ const VerificacionMuestrasList: React.FC = () => {
             description="Gestiona las verificaciones de muestras cilíndricas de concreto"
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
-            searchPlaceholder="Buscar por número verificación, cliente, código documento..."
+            searchPlaceholder="Buscar por número recepción, cliente, código documento..."
             onNewClick={handleNewClick}
             newButtonText="Nueva Verificación"
             filters={
@@ -222,7 +222,7 @@ const VerificacionMuestrasList: React.FC = () => {
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-800">
                                 <tr>
-                                    <th className="table-header">N° Verificación</th>
+                                    <th className="table-header">N° Recepción</th>
                                     <th className="table-header">Cliente</th>
                                     <th className="table-header">Verificado por</th>
                                     <th className="table-header">Fecha Verificación</th>

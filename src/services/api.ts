@@ -2,7 +2,7 @@ import axios from 'axios'
 import { mockApiService } from './mockApi'
 import { databaseService } from './databaseService'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000'
 
 export const api = axios.create({
     baseURL: API_BASE_URL,
@@ -162,7 +162,7 @@ export const apiService = {
     getOrdenes: async (skip = 0, limit = 100): Promise<OrdenTrabajo[]> => {
         return handleApiCall(
             async () => {
-                const response = await api.get(`/api/ordenes/?skip=${skip}&limit=${limit}`)
+                const response = await api.get(`/api/recepcion/?skip=${skip}&limit=${limit}`)
                 return response.data
             },
             () => databaseService.getOrdenes(skip, limit)
@@ -172,7 +172,7 @@ export const apiService = {
     getOrden: async (id: number): Promise<OrdenTrabajo> => {
         return handleApiCall(
             async () => {
-                const response = await api.get(`/api/ordenes/${id}`)
+                const response = await api.get(`/api/recepcion/${id}`)
                 return response.data
             },
             () => databaseService.getOrden(id)
@@ -183,7 +183,7 @@ export const apiService = {
         return handleApiCall(
             async () => {
                 console.log('Enviando datos al backend:', orden)
-                const response = await api.post('/api/ordenes/', orden)
+                const response = await api.post('/api/recepcion/', orden)
                 console.log('Recepción creada exitosamente:', response.data)
                 return response.data
             },
@@ -194,7 +194,7 @@ export const apiService = {
     updateOrden: async (id: number, orden: Partial<OrdenTrabajoCreate>): Promise<OrdenTrabajo> => {
         return handleApiCall(
             async () => {
-                const response = await api.put(`/api/ordenes/${id}`, orden)
+                const response = await api.put(`/api/recepcion/${id}`, orden)
                 return response.data
             },
             () => databaseService.updateOrden(id, orden)
@@ -204,7 +204,7 @@ export const apiService = {
     deleteOrden: async (id: number): Promise<void> => {
         return handleApiCall(
             async () => {
-                await api.delete(`/api/ordenes/${id}`)
+                await api.delete(`/api/recepcion/${id}`)
             },
             () => databaseService.deleteOrden(id)
         )
@@ -255,7 +255,7 @@ export const apiService = {
     // Función para Excel
 
     downloadExcel: async (recepcionId: number): Promise<Blob> => {
-        const response = await api.get(`/api/ordenes/${recepcionId}/excel`, {
+        const response = await api.get(`/api/recepcion/${recepcionId}/excel`, {
             responseType: 'blob'
         })
         return response.data
@@ -265,7 +265,7 @@ export const apiService = {
     searchOrdenes: async (termino: string): Promise<OrdenTrabajo[]> => {
         return handleApiCall(
             async () => {
-                const response = await api.get(`/api/ordenes/search?q=${encodeURIComponent(termino)}`)
+                const response = await api.get(`/api/recepcion/search?q=${encodeURIComponent(termino)}`)
                 return response.data
             },
             () => databaseService.searchOrdenes(termino)
@@ -275,6 +275,11 @@ export const apiService = {
     // Verificaciones de Muestras
     getVerificacion: async (id: number): Promise<any> => {
         const response = await api.get(`/api/verificacion/${id}`)
+        return response.data
+    },
+
+    createVerificacion: async (data: any): Promise<any> => {
+        const response = await api.post('/api/verificacion/', data)
         return response.data
     },
 
@@ -301,6 +306,11 @@ export const apiService = {
         link.click()
         document.body.removeChild(link)
         window.URL.revokeObjectURL(url)
+    },
+
+    checkStatus: async (numero: string): Promise<any> => {
+        const response = await api.get(`/api/tracing/validate/${numero}`)
+        return response.data
     }
 }
 
@@ -319,5 +329,6 @@ export const {
     getVerificaciones,
     updateVerificacion,
     deleteVerificacion,
-    downloadFile
+    downloadFile,
+    checkStatus
 } = apiService
