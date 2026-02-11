@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -6,7 +6,7 @@ import { useAutoSaveDB } from '../hooks/useAutoSaveDB';
 import { apiService, api } from '../services/api';
 import {
     Save, X, FileSpreadsheet, Plus, Trash2,
-    CheckCircle2, ChevronLeft
+    CheckCircle2, ChevronLeft, Loader2, XCircle
 } from 'lucide-react';
 
 // --- Constants & Options ---
@@ -75,6 +75,8 @@ interface VerificacionMuestrasData {
     equipo_escuadra?: string;
     equipo_balanza?: string;
     nota?: string;
+    recepcion_id?: number;
+    numero_ot?: string;
     muestras_verificadas: MuestraVerificada[];
 }
 
@@ -152,6 +154,18 @@ const VerificacionMuestrasForm: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
+    // Estado de validación de trazabilidad
+    const [recepcionStatus, setRecepcionStatus] = useState<{
+        estado: 'idle' | 'buscando' | 'disponible' | 'ocupado';
+        mensaje?: string;
+        datos?: any;
+        formatos?: {
+            recepcion: boolean;
+            verificacion: boolean;
+            compresion: boolean;
+        };
+    }>({ estado: 'idle' });
+
     const initialData: VerificacionMuestrasData = {
         numero_verificacion: '',
         codigo_documento: 'FOR-LAB-015',
@@ -166,10 +180,83 @@ const VerificacionMuestrasForm: React.FC = () => {
         equipo_lainas_2: '-',
         equipo_escuadra: '-',
         equipo_balanza: '-',
+        recepcion_id: undefined,
+        numero_ot: '',
         muestras_verificadas: []
     };
 
     const [verificacionData, setVerificacionData] = useState<VerificacionMuestrasData>(initialData);
+
+    // Buscar estado de trazabilidad
+    const buscarRecepcion = useCallback(async (numero: string) => {
+        if (!numero || numero.length < 2) return;
+
+        setRecepcionStatus({ estado: 'buscando' });
+
+        try {
+            const data = await apiService.checkStatus(numero);
+
+            if (data.exists) {
+                const isRecepcionDone = data.recepcion?.status === 'completado';
+                const isVerificacionDone = data.verificacion?.status === 'completado';
+                const isCompresionDone = data.compresion?.status === 'completado' || data.compresion?.status === 'en_proceso';
+
+                // Para verificación: ocupado si YA existe verificación completada
+                let estadoFinal: 'ocupado' | 'disponible' = isVerificacionDone ? 'ocupado' : 'disponible';
+                let mensajeFinal = isVerificacionDone
+                    ? '⚠️ Verificación ya registrada'
+                    : '✅ Recepción válida - Disponible para verificación';
+
+                // Advertencia si falta recepción
+                if (!isRecepcionDone) {
+                    mensajeFinal = '⚠️ Atención: Falta registro de Recepción';
+                }
+
+                setRecepcionStatus({
+                    estado: estadoFinal,
+                    mensaje: mensajeFinal,
+                    formatos: {
+                        recepcion: isRecepcionDone,
+                        verificacion: isVerificacionDone,
+                        compresion: isCompresionDone
+                    },
+                    datos: data
+                });
+
+                // Auto-fill cliente si está disponible
+                if (data.cliente && !verificacionData.cliente) {
+                    setVerificacionData(prev => ({ 
+                        ...prev, 
+                        cliente: data.cliente,
+                        recepcion_id: data.recepcion?.id,
+                        numero_ot: data.recepcion?.numero_ot
+                    }));
+                } else {
+                    setVerificacionData(prev => ({ 
+                        ...prev, 
+                        recepcion_id: data.recepcion?.id,
+                        numero_ot: data.recepcion?.numero_ot
+                    }));
+                }
+            } else {
+                setRecepcionStatus({
+                    estado: 'disponible',
+                    mensaje: '✅ Número disponible para registro',
+                    formatos: {
+                        recepcion: false,
+                        verificacion: false,
+                        compresion: false
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error buscando estado:', error);
+            setRecepcionStatus({
+                estado: 'disponible',
+                mensaje: '⚠️ Error de conexión - Verifique manualmente'
+            });
+        }
+    }, [verificacionData.cliente]);
 
 
     useEffect(() => {
@@ -223,7 +310,9 @@ const VerificacionMuestrasForm: React.FC = () => {
                 equipo_lainas_1: data.equipo_lainas_1 || '-',
                 equipo_lainas_2: data.equipo_lainas_2 || '-',
                 equipo_escuadra: data.equipo_escuadra || '-',
-                equipo_balanza: data.equipo_balanza || '-'
+                equipo_balanza: data.equipo_balanza || '-',
+                recepcion_id: data.recepcion_id,
+                numero_ot: data.numero_ot
             });
         } catch (error) {
             console.error('Error cargando verificación:', error);
@@ -255,6 +344,71 @@ const VerificacionMuestrasForm: React.FC = () => {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setVerificacionData(prev => ({ ...prev, [name]: value }));
+    };
+
+    // Handler especial para numero_verificacion con validación y autocompletado de -REC
+    const handleNumeroVerificacionBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        let value = e.target.value.trim();
+        if (value && !id) {
+            // Autocompletar con -REC si no lo tiene (y no tiene ya un año -YY al final)
+            if (!value.toUpperCase().includes('-REC')) {
+                // Si tiene formato NNNN-YY, insertar -REC antes del año
+                if (/-\d{2}$/.test(value)) {
+                    value = value.replace(/-(\d{2})$/, '-REC-$1');
+                } else {
+                    value = `${value}-REC`;
+                }
+                setVerificacionData(prev => ({ ...prev, numero_verificacion: value }));
+            }
+            buscarRecepcion(value);
+        }
+    };
+    
+    // Función para importar muestras desde la recepción
+    const importarMuestras = async () => {
+        if (!verificacionData.recepcion_id) return;
+        
+        try {
+            toast.loading('Importando muestras...');
+            const orden = await apiService.getOrden(verificacionData.recepcion_id);
+            toast.dismiss();
+            
+            if (orden && orden.items && orden.items.length > 0) {
+                const nuevasMuestras: MuestraVerificada[] = orden.items.map((item, idx) => ({
+                    item_numero: idx + 1,
+                    codigo_lem: item.codigo_muestra || '',
+                    tipo_testigo: '-',
+                    perpendicularidad_sup1: undefined,
+                    perpendicularidad_sup2: undefined,
+                    perpendicularidad_inf1: undefined,
+                    perpendicularidad_inf2: undefined,
+                    perpendicularidad_medida: undefined,
+                    planitud_superior_aceptacion: '-',
+                    planitud_inferior_aceptacion: '-',
+                    planitud_depresiones_aceptacion: '-',
+                    accion_realizar: '-',
+                    conformidad: '-',
+                    pesar: ''
+                }));
+                
+                // Formatear la fecha de recepción para que coincida con el estado del componente
+                const fechaRecepcion = orden.fecha_recepcion ? formatDateForDB(orden.fecha_recepcion) : verificacionData.fecha_verificacion;
+
+                setVerificacionData(prev => ({
+                    ...prev,
+                    fecha_verificacion: fechaRecepcion,
+                    muestras_verificadas: nuevasMuestras
+                }));
+                
+                toast.success(`${nuevasMuestras.length} muestras importadas correctamente`);
+            } else {
+                toast.error('No se encontraron muestras en esta recepción');
+            }
+        } catch (error) {
+            toast.dismiss();
+            console.error('Error importando muestras:', error);
+            toast.error('Error al importar muestras de recepción');
+        }
     };
 
     const calculateValues = (muestra: MuestraVerificada): MuestraVerificada => {
@@ -459,7 +613,67 @@ const VerificacionMuestrasForm: React.FC = () => {
                     </div>
 
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-white">
-                        <InputField label="Número Verificación" name="numero_verificacion" value={verificacionData.numero_verificacion} onChange={handleInputChange} required placeholder="EJ: V-2024-001" />
+                        {/* Número Verificación con validación de trazabilidad */}
+                        <div className="group relative">
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 ml-0.5">
+                                Número Verificación <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                name="numero_verificacion"
+                                value={verificacionData.numero_verificacion}
+                                onChange={handleInputChange}
+                                onBlur={handleNumeroVerificacionBlur}
+                                className="block w-full rounded-lg border-gray-200 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500/20 focus:bg-white transition-all duration-200 px-3 py-2.5 shadow-sm hover:border-gray-300"
+                                placeholder="Ej: 1111"
+                                required
+                            />
+                            {/* Status Indicator */}
+                            <div className="mt-1.5 flex flex-col gap-1">
+                                {recepcionStatus.estado === 'buscando' && (
+                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100 animate-pulse w-fit">
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        <span className="text-[9px] font-black uppercase tracking-tighter">Buscando...</span>
+                                    </div>
+                                )}
+                                {recepcionStatus.estado === 'disponible' && (
+                                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border shadow-sm bg-emerald-50 text-emerald-600 border-emerald-100 w-fit">
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        <span className="text-[10px] font-black uppercase tracking-tighter">Disponible</span>
+                                    </div>
+                                )}
+                                {recepcionStatus.estado === 'ocupado' && (
+                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-600 rounded-full border border-rose-100 shadow-sm w-fit">
+                                        <XCircle className="h-3 w-3" />
+                                        <span className="text-[9px] font-black uppercase tracking-tighter">Ocupado</span>
+                                    </div>
+                                )}
+                                {recepcionStatus.formatos && (
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter mr-1 italic">Formatos:</span>
+                                        <div className={`flex items-center justify-center w-7 h-4 rounded text-[8px] font-black border transition-colors ${recepcionStatus.formatos.recepcion ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-300'}`}>REC</div>
+                                        <div className={`flex items-center justify-center w-7 h-4 rounded text-[8px] font-black border transition-colors ${recepcionStatus.formatos.verificacion ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-300'}`}>VER</div>
+                                        <div className={`flex items-center justify-center w-7 h-4 rounded text-[8px] font-black border transition-colors ${recepcionStatus.formatos.compresion ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-300'}`}>COM</div>
+                                    </div>
+                                )}
+                                {recepcionStatus.mensaje && (
+                                    <div className={`text-[9px] font-black italic uppercase tracking-tighter ${recepcionStatus.estado === 'ocupado' ? 'text-rose-500' : 'text-slate-400/80'}`}>
+                                        {recepcionStatus.mensaje}
+                                    </div>
+                                )}
+                                
+                                {recepcionStatus.estado === 'disponible' && verificacionData.recepcion_id && verificacionData.muestras_verificadas.length === 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={importarMuestras}
+                                        className="mt-2 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-[10px] font-black rounded-lg border border-blue-100 hover:bg-blue-100 transition-all shadow-sm"
+                                    >
+                                        <Plus className="h-3 w-3" />
+                                        <span>IMPORTAR MUESTRAS DE RECEPCIÓN</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                         <InputField label="Verificado por" name="verificado_por" value={verificacionData.verificado_por || ''} onChange={handleInputChange} placeholder="Nombre del responsable" />
                         <InputField label="Fecha Verificación" name="fecha_verificacion" value={formatDateForInput(verificacionData.fecha_verificacion)} onChange={handleInputChange} type="date" />
                         <InputField label="Cliente" name="cliente" value={verificacionData.cliente || ''} onChange={handleInputChange} placeholder="Nombre del cliente" />
