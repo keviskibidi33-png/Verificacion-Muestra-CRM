@@ -373,36 +373,39 @@ const VerificacionMuestrasForm: React.FC = () => {
             const orden = await apiService.getOrden(verificacionData.recepcion_id);
             toast.dismiss();
             
-            if (orden && orden.items && orden.items.length > 0) {
-                const nuevasMuestras: MuestraVerificada[] = orden.items.map((item, idx) => ({
-                    item_numero: idx + 1,
-                    codigo_lem: item.codigo_muestra || '',
-                    tipo_testigo: '-',
-                    perpendicularidad_sup1: undefined,
-                    perpendicularidad_sup2: undefined,
-                    perpendicularidad_inf1: undefined,
-                    perpendicularidad_inf2: undefined,
-                    perpendicularidad_medida: undefined,
-                    planitud_superior_aceptacion: '-',
-                    planitud_inferior_aceptacion: '-',
-                    planitud_depresiones_aceptacion: '-',
-                    accion_realizar: '-',
-                    conformidad: '-',
-                    pesar: ''
-                }));
-                
-                // Formatear la fecha de recepción para que coincida con el estado del componente
-                const fechaRecepcion = orden.fecha_recepcion ? formatDateForDB(orden.fecha_recepcion) : verificacionData.fecha_verificacion;
+            if (orden) {
+                const samples = orden.muestras || orden.items || [];
+                if (samples.length > 0) {
+                    const nuevasMuestras: MuestraVerificada[] = samples.map((item: any, idx: number) => ({
+                        item_numero: idx + 1,
+                        codigo_lem: item.codigo_muestra || item.codigo_muestra_lem || '',
+                        tipo_testigo: '-',
+                        perpendicularidad_sup1: undefined,
+                        perpendicularidad_sup2: undefined,
+                        perpendicularidad_inf1: undefined,
+                        perpendicularidad_inf2: undefined,
+                        perpendicularidad_medida: undefined,
+                        planitud_superior_aceptacion: '-',
+                        planitud_inferior_aceptacion: '-',
+                        planitud_depresiones_aceptacion: '-',
+                        accion_realizar: '-',
+                        conformidad: '-',
+                        pesar: ''
+                    }));
+                    
+                    // Formatear la fecha de recepción para que coincida con el estado del componente
+                    const fechaRecepcion = orden.fecha_recepcion ? formatDateForDB(orden.fecha_recepcion) : verificacionData.fecha_verificacion;
 
-                setVerificacionData(prev => ({
-                    ...prev,
-                    fecha_verificacion: fechaRecepcion,
-                    muestras_verificadas: nuevasMuestras
-                }));
-                
-                toast.success(`${nuevasMuestras.length} muestras importadas correctamente`);
-            } else {
-                toast.error('No se encontraron muestras en esta recepción');
+                    setVerificacionData(prev => ({
+                        ...prev,
+                        fecha_verificacion: fechaRecepcion,
+                        muestras_verificadas: nuevasMuestras
+                    }));
+                    
+                    toast.success(`${nuevasMuestras.length} muestras importadas correctamente`);
+                } else {
+                    toast.error('No se encontraron muestras en esta recepción');
+                }
             }
         } catch (error) {
             toast.dismiss();
