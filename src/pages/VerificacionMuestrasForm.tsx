@@ -573,9 +573,11 @@ const VerificacionMuestrasForm: React.FC = () => {
                 }
             }
             setTimeout(() => window.history.back(), 1000);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast.error('Error al guardar');
+            // Show specific error from backend if available
+            const msg = error.response?.data?.detail || 'Error al guardar';
+            toast.error(msg);
         } finally {
             setIsSubmitting(false);
         }
