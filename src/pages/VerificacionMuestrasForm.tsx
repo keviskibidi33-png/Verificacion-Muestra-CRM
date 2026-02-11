@@ -613,12 +613,6 @@ const VerificacionMuestrasForm: React.FC = () => {
             toast.dismiss();
         }
     };
-            toast.success('Excel descargado');
-        } catch (error) {
-            toast.dismiss();
-            toast.error('Error al descargar Excel');
-        }
-    };
 
     return (
         <div className="min-h-screen bg-slate-100 py-8 px-4 sm:px-6 lg:px-8 font-sans">
@@ -679,7 +673,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                                 </button>
                             )}
                             {id && (
-                                <button type="button" onClick={descargarExcel} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-200">
+                                <button type="button" onClick={() => descargarExcel()} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-200">
                                     <FileSpreadsheet size={16} /> <span>Exportar Excel</span>
                                 </button>
                             )}
