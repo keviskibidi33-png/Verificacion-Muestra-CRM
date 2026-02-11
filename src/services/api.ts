@@ -61,6 +61,22 @@ export interface OrdenTrabajo {
     designada_a?: string
     estado: string
     items: ItemOrden[]
+    muestras?: MuestraConcreto[]
+}
+
+export interface MuestraConcreto {
+    id: number
+    item_numero: number
+    codigo_muestra: string
+    codigo_muestra_lem?: string
+    identificacion_muestra: string
+    estructura: string
+    fc_kg_cm2: number
+    fecha_moldeo: string
+    hora_moldeo?: string
+    edad: number
+    fecha_rotura: string
+    requiere_densidad: boolean
 }
 
 export interface ItemOrden {
