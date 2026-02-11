@@ -66,7 +66,34 @@
     margin: 0;
   }
 
-  input[type=number] {
+  input[type="number"] {
     -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation: enter 0.3s ease-out;
+  }
+  .fade-in {
+    opacity: 0;
+    animation-name: enter;
+    animation-fill-mode: forwards;
+  }
+  .zoom-in {
+    transform: scale(0.95);
+    animation-name: enter;
+    animation-fill-mode: forwards;
+  }
+
+  @keyframes enter {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 }

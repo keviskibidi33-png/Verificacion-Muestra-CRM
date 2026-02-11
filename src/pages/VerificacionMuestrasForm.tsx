@@ -8,6 +8,7 @@ import {
     Save, X, FileSpreadsheet, Plus, Trash2,
     CheckCircle2, ChevronLeft, Loader2, XCircle
 } from 'lucide-react';
+import ConfirmModal from '../components/ui/ConfirmModal';
 
 // --- Constants & Options ---
 
@@ -165,6 +166,21 @@ const VerificacionMuestrasForm: React.FC = () => {
             compresion: boolean;
         };
     }>({ estado: 'idle' });
+
+    // Modal Control
+    const [modalConfig, setModalConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type?: 'danger' | 'warning' | 'info' | 'success';
+        confirmText?: string;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+    });
 
     const initialData: VerificacionMuestrasData = {
         numero_verificacion: '',
@@ -533,11 +549,19 @@ const VerificacionMuestrasForm: React.FC = () => {
     };
 
     const handleDeleteDraft = () => {
-        if (window.confirm('¿Estás seguro de que deseas eliminar el borrador guardado? Esta acción no se puede deshacer.')) {
-            clearDraft();
-            setVerificacionData(initialData);
-            toast.success('Borrador eliminado');
-        }
+        setModalConfig({
+            isOpen: true,
+            title: '¿Eliminar borrador?',
+            message: 'Esta acción borrará todos los datos temporales no guardados. No se puede deshacer.',
+            confirmText: 'Sí, eliminar',
+            type: 'danger',
+            onConfirm: () => {
+                clearDraft();
+                setVerificacionData(initialData);
+                setModalConfig(prev => ({ ...prev, isOpen: false }));
+                toast.success('Borrador eliminado');
+            }
+        });
     };
 
     const descargarExcel = async () => {
@@ -577,6 +601,17 @@ const VerificacionMuestrasForm: React.FC = () => {
                         <option key={opt} value={opt} />
                     ))}
                 </datalist>
+
+                {/* Branded Confirm Modal */}
+                <ConfirmModal
+                    isOpen={modalConfig.isOpen}
+                    onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+                    onConfirm={modalConfig.onConfirm}
+                    title={modalConfig.title}
+                    message={modalConfig.message}
+                    confirmText={modalConfig.confirmText}
+                    type={modalConfig.type}
+                />
 
                 {/* Header */}
                 <div className="bg-white rounded-xl shadow-md border border-slate-200 mb-6 overflow-hidden">
