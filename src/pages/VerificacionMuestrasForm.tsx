@@ -148,6 +148,34 @@ const formatDateForDB = (dateStr: string | undefined): string => {
     return dateStr;
 };
 
+const formatLemCode = (value: string): string => {
+    if (!value) return '';
+    const currentYear = new Date().getFullYear().toString().slice(-2);
+    const suffix = `-CO-${currentYear}`;
+    
+    // Normalize input
+    let clean = value.trim().toUpperCase();
+    
+    // Case 1: Just digits (e.g., "1234")
+    if (/^\d+$/.test(clean)) {
+        return `${clean}${suffix}`;
+    }
+    
+    // Case 2: Ends with -CO or -CO- (e.g., "1234-CO" or "1234-CO-")
+    if (clean.endsWith('-CO') || clean.endsWith('-CO-')) {
+        // Remove trailing - or -CO and append full suffix to be safe
+        const base = clean.replace(/-CO-?$/, '');
+        return `${base}${suffix}`;
+    }
+
+    // Case 3: Already has correct suffix
+    if (clean.endsWith(suffix)) {
+        return clean;
+    }
+
+    return clean;
+};
+
 // --- Main Component ---
 
 const VerificacionMuestrasForm: React.FC = () => {
@@ -394,7 +422,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                 if (samples.length > 0) {
                     const nuevasMuestras: MuestraVerificada[] = samples.map((item: any, idx: number) => ({
                         item_numero: idx + 1,
-                        codigo_lem: item.codigo_muestra || item.codigo_muestra_lem || '',
+                        codigo_lem: formatLemCode(item.codigo_muestra || item.codigo_muestra_lem || ''),
                         tipo_testigo: '-',
                         perpendicularidad_sup1: undefined,
                         perpendicularidad_sup2: undefined,
@@ -481,10 +509,9 @@ const VerificacionMuestrasForm: React.FC = () => {
 
     // Auto-complete LEM code on blur - adds -CO-YY suffix when only digits are present
     const handleLemCodeBlur = (index: number, value: string) => {
-        if (/^\d+$/.test(value) && value.length >= 1) {
-            const year = new Date().getFullYear().toString().slice(-2);
-            const newValue = `${value}-CO-${year}`;
-            handleMuestraChange(index, 'codigo_lem', newValue);
+        const formatted = formatLemCode(value);
+        if (formatted !== value) {
+            handleMuestraChange(index, 'codigo_lem', formatted);
         }
     };
 
