@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 
 interface AutoSaveOptions<T> {
@@ -22,6 +22,7 @@ export function useAutoSave<T>({
     onLoad
 }: AutoSaveOptions<T>) {
     const [hasLoaded, setHasLoaded] = useState(false);
+    const isClearing = useRef(false);
 
     // Cargar datos guardados al montar
     useEffect(() => {
@@ -61,6 +62,12 @@ export function useAutoSave<T>({
     useEffect(() => {
         if (!enabled || !hasLoaded) return;
 
+        // Si estamos limpiando, saltamos este guardado
+        if (isClearing.current) {
+            isClearing.current = false;
+            return;
+        }
+
         const timeoutId = setTimeout(() => {
             try {
                 const dataToSave = {
@@ -82,6 +89,7 @@ export function useAutoSave<T>({
     // Función para limpiar el borrador
     const clearDraft = () => {
         try {
+            isClearing.current = true;
             localStorage.removeItem(storageKey);
         } catch (error) {
             console.warn('Error limpiando borrador:', error);
