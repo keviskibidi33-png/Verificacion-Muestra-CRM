@@ -593,6 +593,7 @@ const VerificacionMuestrasForm: React.FC = () => {
             onConfirm: () => {
                 clearDraft();
                 setVerificacionData(initialData);
+                setRecepcionStatus({ estado: 'idle' });
                 setModalConfig(prev => ({ ...prev, isOpen: false }));
                 toast.success('Borrador eliminado');
             }
