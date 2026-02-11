@@ -561,10 +561,16 @@ const VerificacionMuestrasForm: React.FC = () => {
             if (id) {
                 await apiService.updateVerificacion(parseInt(id), dataToSave);
                 toast.success('Actualizado correctamente');
+                // Auto-download using current ID
+                await descargarExcel(parseInt(id));
             } else {
-                await api.post('/api/verificacion/', dataToSave);
+                const response = await api.post('/api/verificacion/', dataToSave);
                 toast.success('Guardado correctamente');
                 clearDraft();
+                // Auto-download using new ID from response
+                if (response.data && response.data.id) {
+                     await descargarExcel(response.data.id);
+                }
             }
             setTimeout(() => window.history.back(), 1000);
         } catch (error) {
@@ -591,13 +597,22 @@ const VerificacionMuestrasForm: React.FC = () => {
         });
     };
 
-    const descargarExcel = async () => {
-        if (!id) return;
+    const descargarExcel = async (downloadId?: number) => {
+        const targetId = downloadId || (id ? parseInt(id) : undefined);
+        if (!targetId) return;
         try {
             toast.loading('Generando Excel...');
-            const response = await api.get(`/api/verificacion/${id}/exportar`, { responseType: 'blob' });
-            apiService.downloadFile(response.data, `verificacion_${verificacionData.numero_verificacion}.xlsx`);
+            const response = await api.get(`/api/verificacion/${targetId}/exportar`, { responseType: 'blob' });
+            // Use verificacionData.numero_verificacion if available, otherwise just use generic name
+            const filename = `verificacion_${verificacionData.numero_verificacion || 'export'}.xlsx`;
+            apiService.downloadFile(response.data, filename);
             toast.dismiss();
+        } catch (error) {
+            console.error(error);
+            toast.error('Error al descargar Excel');
+            toast.dismiss();
+        }
+    };
             toast.success('Excel descargado');
         } catch (error) {
             toast.dismiss();
