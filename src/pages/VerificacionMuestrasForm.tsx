@@ -284,11 +284,8 @@ const VerificacionMuestrasForm: React.FC = () => {
                     if (datosBackend.id && !prev.recepcion_id) newData.recepcion_id = datosBackend.id;
                     
                     if (datosBackend.fecha_recepcion) {
-                        // Solo sobreescribir si es la fecha por defecto (hoy) o si está vacío
-                        const today = new Date().toISOString().split('T')[0];
-                        if (newData.fecha_verificacion === today || !newData.fecha_verificacion) {
-                            newData.fecha_verificacion = datosBackend.fecha_recepcion.split('T')[0];
-                        }
+                        // Siempre sincronizar si viene de una búsqueda/sugerencia externa
+                        newData.fecha_verificacion = datosBackend.fecha_recepcion.split('T')[0];
                     }
                     
                     // 2. Auto-fill Samples (only if table is empty)
@@ -712,7 +709,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                 />
 
                 {/* Header */}
-                <div className="bg-white rounded-xl shadow-md border border-slate-200 mb-6 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-md border border-slate-200 mb-6 overflow-visible">
                     <div className="border-b border-gray-100 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white">
                         <div className="flex items-center gap-4">
                             <button onClick={() => window.history.back()} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -748,13 +745,14 @@ const VerificacionMuestrasForm: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-white">
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 bg-white overflow-visible">
                         {/* Número Verificación con validación de trazabilidad */}
                         <div className="group relative">
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 ml-0.5">
                                 Número Verificación <span className="text-red-500">*</span>
                             </label>
-                            <div className="relative">
+                            {/* N° Recepción */}
+                            <div className="flex-[2] min-w-0 overflow-visible">
                                 <input
                                     type="text"
                                     name="numero_verificacion"
