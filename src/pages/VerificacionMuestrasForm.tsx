@@ -278,10 +278,18 @@ const VerificacionMuestrasForm: React.FC = () => {
                 setVerificacionData(prev => {
                     const newData = { ...prev };
                     
-                    // 1. Auto-fill Cliente & OT
+                    // 1. Auto-fill Cliente, OT & Fecha
                     if (datosBackend.cliente && !prev.cliente) newData.cliente = datosBackend.cliente;
                     if (datosBackend.numero_ot && !prev.numero_ot) newData.numero_ot = datosBackend.numero_ot;
                     if (datosBackend.id && !prev.recepcion_id) newData.recepcion_id = datosBackend.id;
+                    
+                    if (datosBackend.fecha_recepcion) {
+                        // Solo sobreescribir si es la fecha por defecto (hoy) o si está vacío
+                        const today = new Date().toISOString().split('T')[0];
+                        if (newData.fecha_verificacion === today || !newData.fecha_verificacion) {
+                            newData.fecha_verificacion = datosBackend.fecha_recepcion.split('T')[0];
+                        }
+                    }
                     
                     // 2. Auto-fill Samples (only if table is empty)
                     if (prev.muestras_verificadas.length === 0 && datosBackend.muestras && datosBackend.muestras.length > 0) {
