@@ -267,21 +267,42 @@ const VerificacionMuestrasForm: React.FC = () => {
                     datos: data
                 });
 
-                // Auto-fill cliente si está disponible
-                if (data.cliente && !verificacionData.cliente) {
-                    setVerificacionData(prev => ({ 
-                        ...prev, 
-                        cliente: data.cliente,
-                        recepcion_id: data.recepcion?.id,
-                        numero_ot: data.recepcion?.numero_ot
-                    }));
-                } else {
-                    setVerificacionData(prev => ({ 
-                        ...prev, 
-                        recepcion_id: data.recepcion?.id,
-                        numero_ot: data.recepcion?.numero_ot
-                    }));
-                }
+                // Auto-fill logic
+                const datosBackend = data.datos || {};
+                
+                setVerificacionData(prev => {
+                    const newData = { ...prev };
+                    
+                    // 1. Auto-fill Cliente & OT
+                    if (datosBackend.cliente && !prev.cliente) newData.cliente = datosBackend.cliente;
+                    if (datosBackend.numero_ot && !prev.numero_ot) newData.numero_ot = datosBackend.numero_ot;
+                    if (datosBackend.id && !prev.recepcion_id) newData.recepcion_id = datosBackend.id;
+                    
+                    // 2. Auto-fill Samples (only if table is empty)
+                    if (prev.muestras_verificadas.length === 0 && datosBackend.muestras && datosBackend.muestras.length > 0) {
+                        const nuevasMuestras: MuestraVerificada[] = datosBackend.muestras.map((m: any, idx: number) => ({
+                            item_numero: idx + 1,
+                            codigo_lem: formatLemCode(m.codigo_lem || ''),
+                            tipo_testigo: m.tipo_testigo || '-',
+                            perpendicularidad_sup1: undefined,
+                            perpendicularidad_sup2: undefined,
+                            perpendicularidad_inf1: undefined,
+                            perpendicularidad_inf2: undefined,
+                            perpendicularidad_medida: undefined,
+                            planitud_superior_aceptacion: '-',
+                            planitud_inferior_aceptacion: '-',
+                            planitud_depresiones_aceptacion: '-',
+                            accion_realizar: '-',
+                            conformidad: '-',
+                            pesar: ''
+                        }));
+                        newData.muestras_verificadas = nuevasMuestras;
+                        toast.success(`Datos importados: ${nuevasMuestras.length} muestras`);
+                    }
+                    
+                    return newData;
+                });
+
             } else {
                 setRecepcionStatus({
                     estado: 'disponible',
@@ -300,7 +321,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                 mensaje: '⚠️ Error de conexión - Verifique manualmente'
             });
         }
-    }, [verificacionData.cliente]);
+    }, [verificacionData.cliente]); // Keep dependency minimal to avoid loops
 
 
     useEffect(() => {
