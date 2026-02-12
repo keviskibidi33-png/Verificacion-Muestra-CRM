@@ -772,6 +772,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                                     } focus:border-blue-500 focus:ring-blue-500/20 focus:bg-white`}
                                     placeholder="Ej: 1111"
                                     autoComplete="off"
+                                    data-lpignore="true"
                                     required
                                 />
                                 
