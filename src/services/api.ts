@@ -327,6 +327,11 @@ export const apiService = {
     checkStatus: async (numero: string): Promise<any> => {
         const response = await api.get(`/api/tracing/validate/${numero}`)
         return response.data
+    },
+
+    getSuggestions: async (q: string): Promise<any[]> => {
+        const response = await api.get(`/api/tracing/suggest?q=${encodeURIComponent(q)}`)
+        return response.data
     }
 }
 

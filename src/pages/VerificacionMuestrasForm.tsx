@@ -194,7 +194,11 @@ const VerificacionMuestrasForm: React.FC = () => {
             compresion: boolean;
         };
     }>({ estado: 'idle' });
-
+ 
+    // Sugerencias para autocompletado
+    const [suggestions, setSuggestions] = useState<any[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+ 
     // Modal Control
     const [modalConfig, setModalConfig] = useState<{
         isOpen: boolean;
@@ -400,11 +404,36 @@ const VerificacionMuestrasForm: React.FC = () => {
         onSave: async (data) => {
             if (id) {
                 await apiService.updateVerificacion(parseInt(id), data);
-                setLastSaved(new Date());
+        setLastSaved(new Date());
             }
         },
         onError: () => toast.error('Error al guardar cambios automáticamente')
     });
+
+    const handleNumeroVerificacionChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.toUpperCase();
+        setVerificacionData(prev => ({ ...prev, numero_verificacion: val }));
+        
+        if (val.length >= 2) {
+            try {
+                // Fetch suggestions using the new endpoint
+                const results = await apiService.getSuggestions(val);
+                setSuggestions(results);
+                setShowSuggestions(results.length > 0);
+            } catch (error) {
+                console.error('Error fetching suggestions:', error);
+            }
+        } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
+        }
+    };
+
+    const handleSelectSuggestion = (s: any) => {
+        setVerificacionData(prev => ({ ...prev, numero_verificacion: s.numero_recepcion }));
+        setShowSuggestions(false);
+        buscarRecepcion(s.numero_recepcion);
+    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -716,16 +745,53 @@ const VerificacionMuestrasForm: React.FC = () => {
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 ml-0.5">
                                 Número Verificación <span className="text-red-500">*</span>
                             </label>
-                            <input
-                                type="text"
-                                name="numero_verificacion"
-                                value={verificacionData.numero_verificacion}
-                                onChange={handleInputChange}
-                                onBlur={handleNumeroVerificacionBlur}
-                                className="block w-full rounded-lg border-gray-200 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500/20 focus:bg-white transition-all duration-200 px-3 py-2.5 shadow-sm hover:border-gray-300"
-                                placeholder="Ej: 1111"
-                                required
-                            />
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    name="numero_verificacion"
+                                    value={verificacionData.numero_verificacion}
+                                    onChange={handleNumeroVerificacionChange}
+                                    onBlur={() => {
+                                        // Delay hiding suggestions to allow clicking them
+                                        setTimeout(() => setShowSuggestions(false), 200);
+                                        // Trigger the -REC logic
+                                        const event = { target: { value: verificacionData.numero_verificacion } } as any;
+                                        handleNumeroVerificacionBlur(event);
+                                    }}
+                                    className={`block w-full rounded-lg text-sm transition-all duration-200 px-3 py-2.5 shadow-sm border ${
+                                        recepcionStatus.estado === 'disponible' ? 'border-emerald-200 bg-emerald-50/30' : 
+                                        recepcionStatus.estado === 'ocupado' ? 'border-rose-200 bg-rose-50/30' : 
+                                        'border-gray-200 bg-slate-50'
+                                    } focus:border-blue-500 focus:ring-blue-500/20 focus:bg-white`}
+                                    placeholder="Ej: 1111"
+                                    autoComplete="off"
+                                    required
+                                />
+                                
+                                {/* Suggestions Menu */}
+                                {showSuggestions && suggestions.length > 0 && (
+                                    <div className="absolute z-50 mt-1 w-full bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden max-h-60 overflow-y-auto">
+                                        {suggestions.map((s, i) => {
+                                            const isVerifDone = s.estados?.verificacion === 'completado';
+                                            return (
+                                                <div 
+                                                    key={i} 
+                                                    onClick={() => handleSelectSuggestion(s)}
+                                                    className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-gray-50 last:border-0"
+                                                >
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="font-bold text-slate-900">{s.numero_recepcion}</span>
+                                                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${isVerifDone ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                            {isVerifDone ? 'Ocupado' : 'Disponible'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-[10px] text-slate-500 truncate">{s.cliente}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                             {/* Status Indicator */}
                             <div className="mt-1.5 flex flex-col gap-1">
                                 {recepcionStatus.estado === 'buscando' && (
@@ -1011,9 +1077,9 @@ const VerificacionMuestrasForm: React.FC = () => {
                         />
                     </div>
                 </div>
-            </div >
-        </div >
+            </div>
+        </div>
     );
-};
+}
 
 export default VerificacionMuestrasForm;
