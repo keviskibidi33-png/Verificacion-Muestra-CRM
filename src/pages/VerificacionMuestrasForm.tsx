@@ -6,7 +6,8 @@ import { useAutoSaveDB } from '../hooks/useAutoSaveDB';
 import { apiService, api } from '../services/api';
 import {
     Save, X, FileSpreadsheet, Plus, Trash2,
-    CheckCircle2, ChevronLeft, Loader2, XCircle
+    CheckCircle2, ChevronLeft, Loader2, XCircle,
+    Calendar, Layers, Building2
 } from 'lucide-react';
 import ConfirmModal from '../components/ui/ConfirmModal';
 
@@ -770,22 +771,44 @@ const VerificacionMuestrasForm: React.FC = () => {
                                 
                                 {/* Suggestions Menu */}
                                 {showSuggestions && suggestions.length > 0 && (
-                                    <div className="absolute z-50 mt-1 w-full bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden max-h-60 overflow-y-auto">
+                                    <div className="absolute left-0 right-0 z-[100] mt-1 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden max-h-72 overflow-y-auto transform origin-top transition-all duration-200">
+                                        <div className="bg-slate-50 px-3 py-1.5 border-b border-gray-100 flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                            <span>Sugerencias Encontradas</span>
+                                            <span>{suggestions.length} resultados</span>
+                                        </div>
                                         {suggestions.map((s, i) => {
                                             const isVerifDone = s.estados?.verificacion === 'completado';
+                                            const samplesCount = s.muestras_count || 0;
+                                            const receptionDate = s.fecha_recepcion ? formatDateForInput(s.fecha_recepcion) : 'N/A';
+                                            
                                             return (
                                                 <div 
                                                     key={i} 
                                                     onClick={() => handleSelectSuggestion(s)}
-                                                    className="px-4 py-2 hover:bg-slate-50 cursor-pointer border-b border-gray-50 last:border-0"
+                                                    className="px-4 py-3 hover:bg-blue-50/50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors group"
                                                 >
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="font-bold text-slate-900">{s.numero_recepcion}</span>
-                                                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${isVerifDone ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                                                            {isVerifDone ? 'Ocupado' : 'Disponible'}
-                                                        </span>
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-black text-lg text-slate-800 group-hover:text-blue-600 transition-colors">{s.numero_recepcion}</span>
+                                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${isVerifDone ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                                {isVerifDone ? 'Ocupado' : 'Disponible'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500">
+                                                                <Calendar size={10} className="text-slate-400" />
+                                                                {receptionDate}
+                                                            </div>
+                                                            <div className="flex items-center gap-1 text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 rounded">
+                                                                <Layers size={10} />
+                                                                {samplesCount} {samplesCount === 1 ? 'Muestra' : 'Muestras'}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="text-[10px] text-slate-500 truncate">{s.cliente}</div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Building2 size={12} className="text-slate-300" />
+                                                        <div className="text-xs font-medium text-slate-500 truncate uppercase">{s.cliente || 'Sin cliente'}</div>
+                                                    </div>
                                                 </div>
                                             );
                                         })}
