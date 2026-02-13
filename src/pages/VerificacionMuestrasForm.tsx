@@ -478,7 +478,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                 if (samples.length > 0) {
                     const nuevasMuestras: MuestraVerificada[] = samples.map((item: any, idx: number) => ({
                         item_numero: idx + 1,
-                        codigo_lem: formatLemCode(item.codigo_muestra || item.codigo_muestra_lem || ''),
+                        codigo_lem: formatLemCode(item.codigo_muestra_lem || item.codigo_muestra || ''),
                         tipo_testigo: '-',
                         perpendicularidad_sup1: undefined,
                         perpendicularidad_sup2: undefined,
