@@ -877,7 +877,7 @@ const VerificacionMuestrasForm: React.FC = () => {
 
                 {/* Table Section */}
                 <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-8 border border-gray-200">
-                    <div className="overflow-x-auto">
+                    <div className="table-scroll">
                         <table className="min-w-full border-collapse">
                             <thead>
                                 <tr>
@@ -1048,7 +1048,6 @@ const VerificacionMuestrasForm: React.FC = () => {
                                             ) : <span className="text-gray-400">-</span>}
                                         </td>
                                         <td className="px-3 py-2 flex gap-2">
-                                            {!id && <button type="button" onClick={() => removeMuestra(index)} className="hover:opacity-70 text-lg" title="Eliminar">🗑️</button>}
                                             <button type="button" onClick={() => {
                                                 const newMuestra = { ...muestra, item_numero: verificacionData.muestras_verificadas.length + 1 };
                                                 setVerificacionData(prev => ({
