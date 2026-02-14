@@ -182,6 +182,7 @@ const formatLemCode = (value: string): string => {
 const VerificacionMuestrasForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
     // Estado de validación de trazabilidad
@@ -616,9 +617,9 @@ const VerificacionMuestrasForm: React.FC = () => {
             };
             if (id) {
                 await apiService.updateVerificacion(parseInt(id), dataToSave);
-                toast.success('Actualizado correctamente');
                 // Auto-download using current ID
                 await descargarExcel(parseInt(id));
+                setIsSuccessModalOpen(true);
             } else {
                 const response = await api.post('/api/verificacion/', dataToSave);
                 toast.success('Guardado correctamente');
@@ -627,8 +628,8 @@ const VerificacionMuestrasForm: React.FC = () => {
                 if (response.data && response.data.id) {
                      await descargarExcel(response.data.id);
                 }
+                setTimeout(() => window.history.back(), 1000);
             }
-            setTimeout(() => window.history.back(), 1000);
         } catch (error: any) {
             console.error(error);
             // Show specific error from backend if available
@@ -740,7 +741,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                                 <X size={16} /> <span>Cancelar</span>
                             </button>
                             <button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all focus:ring-2 focus:ring-blue-500/20 disabled:opacity-70">
-                                <Save size={16} /> <span>{isSubmitting ? 'Guardando...' : 'Guardar'}</span>
+                                <Save size={16} /> <span>{isSubmitting ? 'Guardando...' : (id ? 'Guardar Cambios' : 'Guardar')}</span>
                             </button>
                         </div>
                     </div>
@@ -1047,7 +1048,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                                             ) : <span className="text-gray-400">-</span>}
                                         </td>
                                         <td className="px-3 py-2 flex gap-2">
-                                            <button type="button" onClick={() => removeMuestra(index)} className="hover:opacity-70 text-lg" title="Eliminar">🗑️</button>
+                                            {!id && <button type="button" onClick={() => removeMuestra(index)} className="hover:opacity-70 text-lg" title="Eliminar">🗑️</button>}
                                             <button type="button" onClick={() => {
                                                 const newMuestra = { ...muestra, item_numero: verificacionData.muestras_verificadas.length + 1 };
                                                 setVerificacionData(prev => ({
@@ -1108,6 +1109,28 @@ const VerificacionMuestrasForm: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Success Modal for edit mode */}
+            {isSuccessModalOpen && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+                    <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 text-center">
+                        <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                            <CheckCircle2 className="w-10 h-10 text-green-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">¡Cambios guardados!</h3>
+                        <p className="text-gray-500 text-sm mb-6">La verificación se actualizó correctamente.</p>
+                        <button
+                            onClick={() => {
+                                setIsSuccessModalOpen(false);
+                                window.history.back();
+                            }}
+                            className="w-full px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                            Aceptar
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
