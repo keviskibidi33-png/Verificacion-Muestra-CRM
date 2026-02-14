@@ -876,7 +876,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                 </div>
 
                 {/* Table Section */}
-                <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-8 border border-gray-200">
+                <div className="bg-white rounded-xl shadow-xl mb-8 border border-gray-200">
                     <div className="table-scroll">
                         <table className="min-w-full border-collapse">
                             <thead>
