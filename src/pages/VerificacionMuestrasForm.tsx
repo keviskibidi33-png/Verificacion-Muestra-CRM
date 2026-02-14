@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAutoSave } from '../hooks/useAutoSave';
@@ -184,6 +184,29 @@ const VerificacionMuestrasForm: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+    // Sticky scrollbar sync refs
+    const tableScrollRef = useRef<HTMLDivElement>(null);
+    const stickyScrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const table = tableScrollRef.current;
+        const sticky = stickyScrollRef.current;
+        if (!table || !sticky) return;
+        let syncing = false;
+        const syncFromTable = () => { if (!syncing) { syncing = true; sticky.scrollLeft = table.scrollLeft; syncing = false; } };
+        const syncFromSticky = () => { if (!syncing) { syncing = true; table.scrollLeft = sticky.scrollLeft; syncing = false; } };
+        table.addEventListener('scroll', syncFromTable);
+        sticky.addEventListener('scroll', syncFromSticky);
+        const updateWidth = () => {
+            const inner = sticky.firstElementChild as HTMLElement;
+            if (inner) inner.style.width = table.scrollWidth + 'px';
+        };
+        updateWidth();
+        const observer = new ResizeObserver(updateWidth);
+        observer.observe(table);
+        return () => { table.removeEventListener('scroll', syncFromTable); sticky.removeEventListener('scroll', syncFromSticky); observer.disconnect(); };
+    }, []);
 
     // Estado de validación de trazabilidad
     const [recepcionStatus, setRecepcionStatus] = useState<{
@@ -877,7 +900,7 @@ const VerificacionMuestrasForm: React.FC = () => {
 
                 {/* Table Section */}
                 <div className="bg-white rounded-xl shadow-xl mb-8 border border-gray-200">
-                    <div className="table-scroll">
+                    <div className="table-scroll" ref={tableScrollRef}>
                         <table className="min-w-full border-collapse">
                             <thead>
                                 <tr>
@@ -1061,6 +1084,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+                    <div className="sticky-scrollbar" ref={stickyScrollRef}><div /></div>
                     <div className="p-4 bg-slate-50/50 border-t border-slate-200">
                         <button onClick={addMuestra} className="inline-flex items-center gap-2 px-4 py-2 bg-white text-blue-600 text-sm font-semibold rounded-lg hover:bg-blue-50 border border-blue-200 transition-all shadow-sm"><Plus size={16} /> Agregar Muestra</button>
                     </div>
