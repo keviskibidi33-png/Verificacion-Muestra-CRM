@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useAutoSaveDB } from '../hooks/useAutoSaveDB';
+import { useEnterTableNavigation } from '../hooks/use-enter-table-navigation';
 import { apiService, api } from '../services/api';
 import {
     Save, X, FileSpreadsheet, Plus, Trash2,
@@ -181,6 +182,7 @@ const formatLemCode = (value: string): string => {
 
 const VerificacionMuestrasForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const handleItemsTableKeyDown = useEnterTableNavigation();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -619,14 +621,6 @@ const VerificacionMuestrasForm: React.FC = () => {
         }));
     };
 
-    const removeMuestra = (index: number) => {
-        setVerificacionData(prev => {
-            const filtered = prev.muestras_verificadas.filter((_, i) => i !== index);
-            const renumbered = filtered.map((m, i) => ({ ...m, item_numero: i + 1 }));
-            return { ...prev, muestras_verificadas: renumbered };
-        });
-    };
-
     const handleSubmit = async () => {
         if (!verificacionData.numero_verificacion) {
             toast.error('Número de verificación es obligatorio');
@@ -901,7 +895,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                 {/* Table Section */}
                 <div className="bg-white rounded-xl shadow-xl mb-8 border border-gray-200">
                     <div className="table-scroll" ref={tableScrollRef}>
-                        <table className="min-w-full border-collapse">
+                        <table className="min-w-full border-collapse" onKeyDown={handleItemsTableKeyDown}>
                             <thead>
                                 <tr>
                                     {[
