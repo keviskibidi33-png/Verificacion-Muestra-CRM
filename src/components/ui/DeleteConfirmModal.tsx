@@ -26,72 +26,80 @@ export default function DeleteConfirmModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            {/* Backdrop */}
+        <div className="fixed inset-0 z-[100] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            {/* Glassmorphism Backdrop */}
             <div
-                className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-blur-sm"
+                className="fixed inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity duration-300"
                 onClick={!isLoading ? onClose : undefined}
             ></div>
 
-            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <div className="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg animate-fade-in-up">
+            <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+                <div className="relative transform overflow-hidden rounded-[2rem] bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200">
 
-                    <div className="bg-white dark:bg-gray-800 px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                        <div className="sm:flex sm:items-start">
-                            <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                                <ExclamationTriangleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                    {/* Close Button */}
+                    <button
+                        onClick={onClose}
+                        disabled={isLoading}
+                        className="absolute right-6 top-6 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all duration-200"
+                    >
+                        <XMarkIcon className="h-5 w-5" />
+                    </button>
+
+                    <div className="px-8 pt-10 pb-8">
+                        <div className="flex flex-col items-center text-center">
+                            {/* Icon */}
+                            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-red-50 mb-6 transition-transform duration-500 hover:scale-110">
+                                <ExclamationTriangleIcon className="h-8 w-8 text-red-600" aria-hidden="true" />
                             </div>
-                            <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                                <h3 className="text-base font-semibold leading-6 text-gray-900 dark:text-gray-100" id="modal-title">
+
+                            <div className="space-y-3">
+                                <h3 className="text-xl font-bold text-slate-900 leading-tight" id="modal-title">
                                     {title}
                                 </h3>
-                                <div className="mt-2">
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        {message}
-                                    </p>
-                                    {isMultiple ? (
-                                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-md border border-red-100 dark:border-red-900/30">
-                                            <p className="text-sm font-medium text-red-800 dark:text-red-300">
-                                                {count} elementos seleccionados
-                                            </p>
-                                        </div>
-                                    ) : itemName && (
-                                        <div className="mt-3 p-3 bg-gray-100 dark:bg-gray-700/50 rounded-md">
-                                            <p className="text-sm font-medium text-gray-900 dark:text-gray-200 text-center">
-                                                "{itemName}"
-                                            </p>
-                                        </div>
-                                    )}
-                                    <p className="mt-3 text-sm text-red-600 dark:text-red-400 font-medium">
-                                        Esta acción no se puede deshacer.
-                                    </p>
-                                </div>
+                                <p className="text-slate-500 text-sm leading-relaxed">
+                                    {message}
+                                </p>
+                                {isMultiple ? (
+                                    <div className="p-3 bg-red-50 rounded-2xl border border-red-100">
+                                        <p className="text-sm font-bold text-red-700">
+                                            {count} elementos seleccionados
+                                        </p>
+                                    </div>
+                                ) : itemName && (
+                                    <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <p className="text-sm font-bold text-slate-700">
+                                            "{itemName}"
+                                        </p>
+                                    </div>
+                                )}
+                                <p className="text-xs text-red-500 font-bold">
+                                    Esta acción no se puede deshacer.
+                                </p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-gray-50 dark:bg-gray-700/30 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                    {/* Actions */}
+                    <div className="px-8 pb-10 flex flex-col sm:flex-row-reverse gap-3">
                         <button
                             type="button"
-                            className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:ml-3 sm:w-auto disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
+                            className="inline-flex items-center justify-center rounded-2xl bg-red-600 hover:bg-red-700 shadow-red-500/20 px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:pointer-events-none w-full sm:w-auto min-w-[120px]"
                             onClick={onConfirm}
                             disabled={isLoading}
                         >
                             {isLoading ? (
-                                <>
-                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <div className="flex items-center gap-2">
+                                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
                                     Eliminando...
-                                </>
-                            ) : (
-                                'Eliminar'
-                            )}
+                                </div>
+                            ) : 'Eliminar'}
                         </button>
                         <button
                             type="button"
-                            className="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-200 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto transition-colors"
+                            className="inline-flex items-center justify-center rounded-2xl bg-slate-50 px-6 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all duration-200 w-full sm:w-auto border border-slate-200"
                             onClick={onClose}
                             disabled={isLoading}
                         >
