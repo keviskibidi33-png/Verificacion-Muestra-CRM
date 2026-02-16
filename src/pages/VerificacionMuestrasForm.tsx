@@ -692,7 +692,7 @@ const VerificacionMuestrasForm: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-100 py-8 px-4 sm:px-6 lg:px-8 font-sans">
+        <div className="h-screen overflow-y-auto bg-slate-100 py-8 px-4 sm:px-6 lg:px-8 font-sans">
             <div className="max-w-[1920px] mx-auto">
                 <datalist id="perpendicularidad-options">
                     <option value="-" />
