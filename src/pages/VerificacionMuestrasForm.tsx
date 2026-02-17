@@ -187,6 +187,15 @@ const VerificacionMuestrasForm: React.FC = () => {
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
+    // Iframe-aware close: sends CLOSE_MODAL to parent CRM shell on tablet, falls back to history.back()
+    const handleClose = () => {
+        if (window.self !== window.top) {
+            window.parent.postMessage({ type: 'CLOSE_MODAL' }, '*');
+        } else {
+            window.history.back();
+        }
+    };
+
     // Sticky scrollbar sync refs
     const tableScrollRef = useRef<HTMLDivElement>(null);
     const stickyScrollRef = useRef<HTMLDivElement>(null);
@@ -645,7 +654,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                 if (response.data && response.data.id) {
                      await descargarExcel(response.data.id);
                 }
-                setTimeout(() => window.history.back(), 1000);
+                setTimeout(() => handleClose(), 1000);
             }
         } catch (error: any) {
             console.error(error);
@@ -681,7 +690,7 @@ const VerificacionMuestrasForm: React.FC = () => {
             toast.loading('Generando Excel...');
             const response = await api.get(`/api/verificacion/${targetId}/exportar`, { responseType: 'blob' });
             // Use verificacionData.numero_verificacion if available, otherwise just use generic name
-            const filename = `verificacion_${verificacionData.numero_verificacion || 'export'}.xlsx`;
+            const filename = `Verificación Compresión N-${verificacionData.numero_verificacion || 'export'}.xlsx`;
             apiService.downloadFile(response.data, filename);
             toast.dismiss();
         } catch (error) {
@@ -730,7 +739,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                 <div className="bg-white rounded-xl shadow-md border border-slate-200 mb-6 overflow-visible">
                     <div className="border-b border-gray-100 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white">
                         <div className="flex items-center gap-4">
-                            <button onClick={() => window.history.back()} className="text-gray-400 hover:text-gray-600 transition-colors">
+                            <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
                                 <ChevronLeft size={24} />
                             </button>
                             <div>
@@ -754,9 +763,6 @@ const VerificacionMuestrasForm: React.FC = () => {
                                     <FileSpreadsheet size={16} /> <span>Exportar Excel</span>
                                 </button>
                             )}
-                            <button type="button" onClick={() => window.history.back()} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors border border-gray-200">
-                                <X size={16} /> <span>Cancelar</span>
-                            </button>
                             <button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all focus:ring-2 focus:ring-blue-500/20 disabled:opacity-70">
                                 <Save size={16} /> <span>{isSubmitting ? 'Guardando...' : (id ? 'Guardar Cambios' : 'Guardar')}</span>
                             </button>
@@ -1140,7 +1146,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                         <button
                             onClick={() => {
                                 setIsSuccessModalOpen(false);
-                                window.history.back();
+                                handleClose();
                             }}
                             className="w-full px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                         >

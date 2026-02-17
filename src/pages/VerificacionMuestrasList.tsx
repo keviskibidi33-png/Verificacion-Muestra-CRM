@@ -119,7 +119,7 @@ const VerificacionMuestrasList: React.FC = () => {
     const descargarExcel = async (id: number) => {
         try {
             const response = await api.get(`/api/verificacion/${id}/exportar`, { responseType: 'blob' });
-            apiService.downloadFile(response.data, `verificacion_${id}.xlsx`);
+            apiService.downloadFile(response.data, `Verificación Compresión N-${id}.xlsx`);
             toast.success('Excel descargado');
         } catch (err: any) {
             toast.error('Error descargando Excel');
