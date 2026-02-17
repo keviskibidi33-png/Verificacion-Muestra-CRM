@@ -6,15 +6,18 @@ import { useAutoSaveDB } from '../hooks/useAutoSaveDB';
 import { useEnterTableNavigation } from '../hooks/use-enter-table-navigation';
 import { apiService, api } from '../services/api';
 import {
-    Save, X, FileSpreadsheet, Plus, Trash2,
+    Save, FileSpreadsheet, Plus, Trash2,
     CheckCircle2, ChevronLeft, Loader2, XCircle,
-    Calendar, Layers, Building2
+    Calendar, Layers, Building2, Search
 } from 'lucide-react';
 import ConfirmModal from '../components/ui/ConfirmModal';
 
 // --- Constants & Options ---
 
 const EQUIPMENT_OPTIONS = ['-', 'EQP-0255'];
+const BERNIER_OPTIONS = ['-', 'EQP-0255', 'EQP-0101'];
+const LAINAS_OPTIONS = ['-', 'EQP-0255', 'INS-0189', 'INS-0193'];
+const ESCUADRA_OPTIONS = ['-', 'EQP-0255', 'INS-0190'];
 
 const ACCION_OPTIONS = [
     '-',
@@ -736,34 +739,40 @@ const VerificacionMuestrasForm: React.FC = () => {
                 />
 
                 {/* Header */}
-                <div className="bg-white rounded-xl shadow-md border border-slate-200 mb-6 overflow-visible">
-                    <div className="border-b border-gray-100 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-6 sticky top-0 z-40">
+                    <div className="border-b border-gray-100 px-6 py-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white rounded-t-xl">
                         <div className="flex items-center gap-4">
                             <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors">
                                 <ChevronLeft size={24} />
                             </button>
-                            <div>
-                                <h1 className="text-xl font-bold text-gray-900 tracking-tight">
-                                    {id ? 'Editar Verificación' : 'Nueva Verificación'}
-                                </h1>
-                                <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                                    {id ? <span>ID: <span className="font-mono text-gray-700">#{id}</span></span> : 'Registro de nuevas muestras'}
-                                    {lastSaved && <span className="text-xs text-green-600 flex items-center ml-2"><CheckCircle2 size={12} className="mr-1" /> Guardado</span>}
-                                </p>
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-xl bg-[#0070F3] flex items-center justify-center text-white shadow-lg shadow-blue-500/20 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                                    <Search className="h-5 w-5" strokeWidth={3} />
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-black text-slate-900 tracking-tighter uppercase italic">
+                                        {id ? 'Editar Verificación' : 'Nueva Verificación'}
+                                    </h1>
+                                    <p className="text-slate-400 font-bold uppercase text-[9px] tracking-[0.2em] mt-0.5 flex items-center gap-2">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                        {id ? `ID: #${id}` : 'Registro de Verificación Geofal'}
+                                        {lastSaved && <span className="text-emerald-600 flex items-center ml-2"><CheckCircle2 size={10} className="mr-1" /> Guardado</span>}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 w-full sm:w-auto">
                             {!id && (
-                                <button type="button" onClick={handleDeleteDraft} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-rose-50 text-rose-700 text-sm font-medium rounded-lg hover:bg-rose-100 transition-colors border border-rose-200">
+                                <button type="button" onClick={handleDeleteDraft} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 text-slate-400 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-rose-50 hover:text-rose-500 transition-all border border-slate-100">
                                     <Trash2 size={16} /> <span>Eliminar Borrador</span>
                                 </button>
                             )}
                             {id && (
-                                <button type="button" onClick={() => descargarExcel()} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-200">
+                                <button type="button" onClick={() => descargarExcel()} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-emerald-100 transition-all border border-emerald-200">
                                     <FileSpreadsheet size={16} /> <span>Exportar Excel</span>
                                 </button>
                             )}
-                            <button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-all focus:ring-2 focus:ring-blue-500/20 disabled:opacity-70">
+                            <button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2 bg-slate-900 text-white rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-900/10 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-70">
                                 <Save size={16} /> <span>{isSubmitting ? 'Guardando...' : (id ? 'Guardar Cambios' : 'Guardar')}</span>
                             </button>
                         </div>
@@ -1112,10 +1121,10 @@ const VerificacionMuestrasForm: React.FC = () => {
                             </button>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <SelectField label="Bernier" name="equipo_bernier" value={verificacionData.equipo_bernier} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
-                            <SelectField label="Lainas 1" name="equipo_lainas_1" value={verificacionData.equipo_lainas_1} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
-                            <SelectField label="Lainas 2" name="equipo_lainas_2" value={verificacionData.equipo_lainas_2} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
-                            <SelectField label="Escuadra" name="equipo_escuadra" value={verificacionData.equipo_escuadra} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
+                            <SelectField label="Bernier" name="equipo_bernier" value={verificacionData.equipo_bernier} onChange={handleInputChange} options={BERNIER_OPTIONS} />
+                            <SelectField label="Lainas 1" name="equipo_lainas_1" value={verificacionData.equipo_lainas_1} onChange={handleInputChange} options={LAINAS_OPTIONS} />
+                            <SelectField label="Lainas 2" name="equipo_lainas_2" value={verificacionData.equipo_lainas_2} onChange={handleInputChange} options={LAINAS_OPTIONS} />
+                            <SelectField label="Escuadra" name="equipo_escuadra" value={verificacionData.equipo_escuadra} onChange={handleInputChange} options={ESCUADRA_OPTIONS} />
                             <SelectField label="Balanza" name="equipo_balanza" value={verificacionData.equipo_balanza} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
                         </div>
                     </div>
