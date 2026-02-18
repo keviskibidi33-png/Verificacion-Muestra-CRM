@@ -14,10 +14,11 @@ import ConfirmModal from '../components/ui/ConfirmModal';
 
 // --- Constants & Options ---
 
-const EQUIPMENT_OPTIONS = ['-', 'EQP-0255'];
-const BERNIER_OPTIONS = ['-', 'EQP-0255', 'EQP-0101'];
-const LAINAS_OPTIONS = ['-', 'EQP-0255', 'INS-0189', 'INS-0193'];
-const ESCUADRA_OPTIONS = ['-', 'EQP-0255', 'INS-0190'];
+const EQUIPMENT_OPTIONS = ['-', 'EQP-0023'];
+const BERNIER_OPTIONS = ['-', 'EQP-0101'];
+const LAINAS_1_OPTIONS = ['-', 'INS-0189'];
+const LAINAS_2_OPTIONS = ['-', 'INS-0193'];
+const ESCUADRA_OPTIONS = ['-', 'INS-0190'];
 
 const ACCION_OPTIONS = [
     '-',
@@ -1109,21 +1110,21 @@ const VerificacionMuestrasForm: React.FC = () => {
                                 type="button"
                                 onClick={() => setVerificacionData(prev => ({
                                     ...prev,
-                                    equipo_bernier: 'EQP-0255',
-                                    equipo_lainas_1: 'EQP-0255',
-                                    equipo_lainas_2: 'EQP-0255',
-                                    equipo_escuadra: 'EQP-0255',
-                                    equipo_balanza: 'EQP-0255'
+                                    equipo_bernier: 'EQP-0101',
+                                    equipo_lainas_1: 'INS-0189',
+                                    equipo_lainas_2: 'INS-0193',
+                                    equipo_escuadra: 'INS-0190',
+                                    equipo_balanza: 'EQP-0023'
                                 }))}
                                 className="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1"
                             >
-                                <CheckCircle2 size={12} /> Usar EQP-0255 en todos
+                                <CheckCircle2 size={12} /> Cargar códigos en todos
                             </button>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <SelectField label="Bernier" name="equipo_bernier" value={verificacionData.equipo_bernier} onChange={handleInputChange} options={BERNIER_OPTIONS} />
-                            <SelectField label="Lainas 1" name="equipo_lainas_1" value={verificacionData.equipo_lainas_1} onChange={handleInputChange} options={LAINAS_OPTIONS} />
-                            <SelectField label="Lainas 2" name="equipo_lainas_2" value={verificacionData.equipo_lainas_2} onChange={handleInputChange} options={LAINAS_OPTIONS} />
+                            <SelectField label="Lainas 1" name="equipo_lainas_1" value={verificacionData.equipo_lainas_1} onChange={handleInputChange} options={LAINAS_1_OPTIONS} />
+                            <SelectField label="Lainas 2" name="equipo_lainas_2" value={verificacionData.equipo_lainas_2} onChange={handleInputChange} options={LAINAS_2_OPTIONS} />
                             <SelectField label="Escuadra" name="equipo_escuadra" value={verificacionData.equipo_escuadra} onChange={handleInputChange} options={ESCUADRA_OPTIONS} />
                             <SelectField label="Balanza" name="equipo_balanza" value={verificacionData.equipo_balanza} onChange={handleInputChange} options={EQUIPMENT_OPTIONS} />
                         </div>
