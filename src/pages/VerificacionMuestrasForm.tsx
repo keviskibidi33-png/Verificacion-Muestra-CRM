@@ -182,6 +182,58 @@ const formatLemCode = (value: string): string => {
     return clean;
 };
 
+const hasVerificacionSampleData = (sample: MuestraVerificada | undefined): boolean => {
+    if (!sample) return false;
+
+    const textFields = [
+        sample.codigo_lem,
+        sample.tipo_testigo,
+        sample.aceptacion_diametro,
+        sample.planitud_superior_aceptacion,
+        sample.planitud_inferior_aceptacion,
+        sample.planitud_depresiones_aceptacion,
+        sample.accion_realizar,
+        sample.conformidad,
+        sample.pesar,
+    ];
+
+    if (textFields.some((value) => typeof value === 'string' && value.trim() !== '' && value.trim() !== '-')) {
+        return true;
+    }
+
+    const numericFields = [
+        sample.diametro_1_mm,
+        sample.diametro_2_mm,
+        sample.tolerancia_porcentaje,
+        sample.longitud_1_mm,
+        sample.longitud_2_mm,
+        sample.longitud_3_mm,
+        sample.masa_muestra_aire_g,
+    ];
+
+    if (numericFields.some((value) => value !== undefined && value !== null && String(value).trim() !== '')) {
+        return true;
+    }
+
+    return Boolean(
+        sample.perpendicularidad_sup1 ||
+        sample.perpendicularidad_sup2 ||
+        sample.perpendicularidad_inf1 ||
+        sample.perpendicularidad_inf2 ||
+        sample.perpendicularidad_medida
+    );
+};
+
+const sanitizeVerificacionSamples = (samples: MuestraVerificada[] | undefined): MuestraVerificada[] => {
+    if (!Array.isArray(samples)) return [];
+
+    const meaningful = samples.filter((sample) => hasVerificacionSampleData(sample));
+    return meaningful.map((sample, index) => ({
+        ...sample,
+        item_numero: index + 1,
+    }));
+};
+
 // --- Main Component ---
 
 const VerificacionMuestrasForm: React.FC = () => {
@@ -328,7 +380,8 @@ const VerificacionMuestrasForm: React.FC = () => {
                     }
                     
                     // 2. Auto-fill Samples (only if table is empty)
-                    if (prev.muestras_verificadas.length === 0 && datosBackend.muestras && datosBackend.muestras.length > 0) {
+                    const hasMeaningfulSamples = prev.muestras_verificadas.some((sample) => hasVerificacionSampleData(sample));
+                    if (!hasMeaningfulSamples && datosBackend.muestras && datosBackend.muestras.length > 0) {
                         const nuevasMuestras: MuestraVerificada[] = datosBackend.muestras.map((m: any, idx: number) => ({
                             item_numero: idx + 1,
                             codigo_lem: formatLemCode(m.codigo_lem || ''),
@@ -439,7 +492,12 @@ const VerificacionMuestrasForm: React.FC = () => {
         data: verificacionData,
         enabled: !id,
         onLoad: (data) => {
-            if (!id && data) setVerificacionData(data);
+            if (id || !data) return;
+            setVerificacionData((prev) => ({
+                ...prev,
+                ...data,
+                muestras_verificadas: sanitizeVerificacionSamples(data.muestras_verificadas),
+            }));
         }
     });
 
@@ -647,17 +705,15 @@ const VerificacionMuestrasForm: React.FC = () => {
             };
             if (id) {
                 await apiService.updateVerificacion(parseInt(id), dataToSave);
-                // Auto-download using current ID
-                await descargarExcel(parseInt(id));
-                setIsSuccessModalOpen(true);
+                toast.success('Verificación actualizada. Descarga manual disponible.');
+                clearDraft();
+                setVerificacionData(initialData);
+                setRecepcionStatus({ estado: 'idle' });
+                setTimeout(() => handleClose(), 1000);
             } else {
-                const response = await api.post('/api/verificacion/', dataToSave);
+                await api.post('/api/verificacion/', dataToSave);
                 toast.success('Guardado correctamente');
                 clearDraft();
-                // Auto-download using new ID from response
-                if (response.data && response.data.id) {
-                     await descargarExcel(response.data.id);
-                }
                 setTimeout(() => handleClose(), 1000);
             }
         } catch (error: any) {
