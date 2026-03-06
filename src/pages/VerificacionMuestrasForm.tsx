@@ -5,6 +5,7 @@ import { useAutoSave } from '../hooks/useAutoSave';
 import { useAutoSaveDB } from '../hooks/useAutoSaveDB';
 import { useEnterTableNavigation } from '../hooks/use-enter-table-navigation';
 import { apiService, api } from '../services/api';
+import { getApiErrorMessage } from '../utils/apiError';
 import {
     Save, FileSpreadsheet, Plus, Trash2,
     CheckCircle2, ChevronLeft, Loader2, XCircle,
@@ -41,9 +42,9 @@ interface MuestraVerificada {
     codigo_lem: string;
     tipo_testigo: string;
     // Diámetros
-    diametro_1_mm?: number | string;
-    diametro_2_mm?: number | string;
-    tolerancia_porcentaje?: number;
+    diametro_1_mm?: number | string | null;
+    diametro_2_mm?: number | string | null;
+    tolerancia_porcentaje?: number | null;
     aceptacion_diametro?: string;
     // Perpendicularidad
     perpendicularidad_sup1?: boolean;
@@ -58,11 +59,11 @@ interface MuestraVerificada {
     accion_realizar?: string;
     conformidad?: string;
     // Longitud
-    longitud_1_mm?: number | string;
-    longitud_2_mm?: number | string;
-    longitud_3_mm?: number | string;
+    longitud_1_mm?: number | string | null;
+    longitud_2_mm?: number | string | null;
+    longitud_3_mm?: number | string | null;
     // Masa
-    masa_muestra_aire_g?: number | string;
+    masa_muestra_aire_g?: number | string | null;
     pesar?: string;
 }
 
@@ -234,6 +235,26 @@ const sanitizeVerificacionSamples = (samples: MuestraVerificada[] | undefined): 
     }));
 };
 
+const toNullableNumber = (value: unknown): number | null => {
+    if (value === '' || value === '-' || value === null || value === undefined) {
+        return null;
+    }
+    const parsed = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const normalizeSampleForApi = (sample: MuestraVerificada, index: number): MuestraVerificada => ({
+    ...sample,
+    item_numero: index + 1,
+    diametro_1_mm: toNullableNumber(sample.diametro_1_mm),
+    diametro_2_mm: toNullableNumber(sample.diametro_2_mm),
+    tolerancia_porcentaje: toNullableNumber(sample.tolerancia_porcentaje),
+    longitud_1_mm: toNullableNumber(sample.longitud_1_mm),
+    longitud_2_mm: toNullableNumber(sample.longitud_2_mm),
+    longitud_3_mm: toNullableNumber(sample.longitud_3_mm),
+    masa_muestra_aire_g: toNullableNumber(sample.masa_muestra_aire_g),
+});
+
 // --- Main Component ---
 
 const VerificacionMuestrasForm: React.FC = () => {
@@ -326,6 +347,16 @@ const VerificacionMuestrasForm: React.FC = () => {
     };
 
     const [verificacionData, setVerificacionData] = useState<VerificacionMuestrasData>(initialData);
+
+    const buildPayloadForApi = useCallback((data: VerificacionMuestrasData) => {
+        const muestrasNormalizadas = sanitizeVerificacionSamples(data.muestras_verificadas).map(normalizeSampleForApi);
+
+        return {
+            ...data,
+            fecha_verificacion: formatDateForDB(data.fecha_verificacion),
+            muestras_verificadas: muestrasNormalizadas,
+        };
+    }, []);
 
     // Buscar estado de trazabilidad
     const buscarRecepcion = useCallback(async (numero: string) => {
@@ -506,8 +537,8 @@ const VerificacionMuestrasForm: React.FC = () => {
         enabled: !!id,
         onSave: async (data) => {
             if (id) {
-                await apiService.updateVerificacion(parseInt(id), data);
-        setLastSaved(new Date());
+                await apiService.updateVerificacion(parseInt(id), buildPayloadForApi(data));
+                setLastSaved(new Date());
             }
         },
         onError: () => toast.error('Error al guardar cambios automáticamente')
@@ -699,10 +730,11 @@ const VerificacionMuestrasForm: React.FC = () => {
         }
         setIsSubmitting(true);
         try {
-            const dataToSave = {
-                ...verificacionData,
-                fecha_verificacion: formatDateForDB(verificacionData.fecha_verificacion)
-            };
+            const dataToSave = buildPayloadForApi(verificacionData);
+            if (dataToSave.muestras_verificadas.length === 0) {
+                toast.error('Debe registrar al menos una muestra antes de guardar');
+                return;
+            }
             if (id) {
                 await apiService.updateVerificacion(parseInt(id), dataToSave);
                 toast.success('Verificación actualizada. Descarga manual disponible.');
@@ -711,16 +743,14 @@ const VerificacionMuestrasForm: React.FC = () => {
                 setRecepcionStatus({ estado: 'idle' });
                 setTimeout(() => handleClose(), 1000);
             } else {
-                await api.post('/api/verificacion/', dataToSave);
+                await apiService.createVerificacion(dataToSave);
                 toast.success('Guardado correctamente');
                 clearDraft();
                 setTimeout(() => handleClose(), 1000);
             }
         } catch (error: any) {
             console.error(error);
-            // Show specific error from backend if available
-            const msg = error.response?.data?.detail || 'Error al guardar';
-            toast.error(msg);
+            toast.error(getApiErrorMessage(error, 'Error al guardar'));
         } finally {
             setIsSubmitting(false);
         }

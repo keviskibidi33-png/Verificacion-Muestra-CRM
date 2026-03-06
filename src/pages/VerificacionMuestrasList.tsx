@@ -5,6 +5,7 @@ import Pagination from '../components/ui/Pagination';
 import DeleteConfirmModal from '../components/ui/DeleteConfirmModal';
 import { toast } from 'react-hot-toast';
 import { apiService, api } from '../services/api';
+import { getApiErrorMessage } from '../utils/apiError';
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
 
 interface VerificacionMuestra {
@@ -81,7 +82,7 @@ const VerificacionMuestrasList: React.FC = () => {
             toast.success('Excel generado exitosamente');
             cargarVerificaciones();
         } catch (err: any) {
-            toast.error(err.response?.data?.detail || 'Error generando Excel');
+            toast.error(getApiErrorMessage(err, 'Error generando Excel'));
         }
     };
 

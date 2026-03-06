@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import DeleteConfirmModal from '../components/ui/DeleteConfirmModal';
 import { toast } from 'react-hot-toast';
 import { apiService, api } from '../services/api';
+import { getApiErrorMessage } from '../utils/apiError';
 
 interface MuestraVerificada {
     id: number;
@@ -73,7 +74,7 @@ const VerificacionMuestrasDetail: React.FC = () => {
                 cargarVerificacion(verificacion.id);
             }
         } catch (err: any) {
-            toast.error(err.response?.data?.detail || 'Error generando Excel');
+            toast.error(getApiErrorMessage(err, 'Error generando Excel'));
         }
     };
 
@@ -86,7 +87,7 @@ const VerificacionMuestrasDetail: React.FC = () => {
             toast.success('Verificación eliminada exitosamente');
             navigate('/verificacion');
         } catch (err: any) {
-            toast.error(err.response?.data?.detail || 'Error eliminando verificación');
+            toast.error(getApiErrorMessage(err, 'Error eliminando verificación'));
             setIsDeleting(false);
             setShowDeleteModal(false);
         }
