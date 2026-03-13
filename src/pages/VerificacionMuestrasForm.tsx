@@ -417,11 +417,11 @@ const VerificacionMuestrasForm: React.FC = () => {
                             item_numero: idx + 1,
                             codigo_lem: formatLemCode(m.codigo_lem || ''),
                             tipo_testigo: m.tipo_testigo || '-',
-                            perpendicularidad_sup1: undefined,
-                            perpendicularidad_sup2: undefined,
-                            perpendicularidad_inf1: undefined,
-                            perpendicularidad_inf2: undefined,
-                            perpendicularidad_medida: undefined,
+                            perpendicularidad_sup1: '-',
+                            perpendicularidad_sup2: '-',
+                            perpendicularidad_inf1: '-',
+                            perpendicularidad_inf2: '-',
+                            perpendicularidad_medida: '-',
                             planitud_superior_aceptacion: '-',
                             planitud_inferior_aceptacion: '-',
                             planitud_depresiones_aceptacion: '-',
@@ -538,12 +538,11 @@ const VerificacionMuestrasForm: React.FC = () => {
         onSave: async (data) => {
             if (id) {
                 await apiService.updateVerificacion(parseInt(id), buildPayloadForApi(data));
-                setLastSaved(new Date());
+    setLastSaved(new Date());
             }
         },
         onError: () => toast.error('Error al guardar cambios automáticamente')
     });
-
     const handleNumeroVerificacionChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value.toUpperCase();
         setVerificacionData(prev => ({ ...prev, numero_verificacion: val }));
@@ -608,11 +607,11 @@ const VerificacionMuestrasForm: React.FC = () => {
                         item_numero: idx + 1,
                         codigo_lem: formatLemCode(item.codigo_muestra_lem || item.codigo_muestra || ''),
                         tipo_testigo: '-',
-                        perpendicularidad_sup1: undefined,
-                        perpendicularidad_sup2: undefined,
-                        perpendicularidad_inf1: undefined,
-                        perpendicularidad_inf2: undefined,
-                        perpendicularidad_medida: undefined,
+                        perpendicularidad_sup1: '-',
+                        perpendicularidad_sup2: '-',
+                        perpendicularidad_inf1: '-',
+                        perpendicularidad_inf2: '-',
+                        perpendicularidad_medida: '-',
                         planitud_superior_aceptacion: '-',
                         planitud_inferior_aceptacion: '-',
                         planitud_depresiones_aceptacion: '-',
@@ -705,11 +704,11 @@ const VerificacionMuestrasForm: React.FC = () => {
             item_numero,
             codigo_lem: '',
             tipo_testigo: '-',
-            perpendicularidad_sup1: undefined,
-            perpendicularidad_sup2: undefined,
-            perpendicularidad_inf1: undefined,
-            perpendicularidad_inf2: undefined,
-            perpendicularidad_medida: undefined,
+            perpendicularidad_sup1: '-',
+            perpendicularidad_sup2: '-',
+            perpendicularidad_inf1: '-',
+            perpendicularidad_inf2: '-',
+            perpendicularidad_medida: '-',
             planitud_superior_aceptacion: '-',
             planitud_inferior_aceptacion: '-',
             planitud_depresiones_aceptacion: '-',
@@ -722,6 +721,7 @@ const VerificacionMuestrasForm: React.FC = () => {
             muestras_verificadas: [...prev.muestras_verificadas, nuevaMuestra]
         }));
     };
+
 
     const handleSubmit = async () => {
         if (!verificacionData.numero_verificacion) {
