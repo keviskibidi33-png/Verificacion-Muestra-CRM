@@ -1175,6 +1175,16 @@ const VerificacionMuestrasForm: React.FC = () => {
                                                     muestras_verificadas: [...prev.muestras_verificadas, newMuestra]
                                                 }));
                                             }} className="hover:opacity-70 text-lg" title="Copiar">📋</button>
+                                            <button type="button" onClick={() => {
+                                                if (verificacionData.muestras_verificadas.length <= 1) return;
+                                                if (!window.confirm(`¿Eliminar muestra ${muestra.item_numero}?`)) return;
+                                                setVerificacionData(prev => ({
+                                                    ...prev,
+                                                    muestras_verificadas: prev.muestras_verificadas
+                                                        .filter((_, i) => i !== index)
+                                                        .map((m, i) => ({ ...m, item_numero: i + 1 }))
+                                                }));
+                                            }} className="hover:opacity-70 text-lg text-red-500" title="Eliminar">🗑️</button>
                                         </td>
                                     </tr>
                                 ))}
