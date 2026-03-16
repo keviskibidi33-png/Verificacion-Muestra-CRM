@@ -263,6 +263,8 @@ const VerificacionMuestrasForm: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(null);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
     // Iframe-aware close: sends CLOSE_MODAL to parent CRM shell on tablet, falls back to history.back()
     const handleClose = () => {
@@ -1176,14 +1178,12 @@ const VerificacionMuestrasForm: React.FC = () => {
                                                 }));
                                             }} className="hover:opacity-70 text-lg" title="Copiar">📋</button>
                                             <button type="button" onClick={() => {
-                                                if (verificacionData.muestras_verificadas.length <= 1) return;
-                                                if (!window.confirm(`¿Eliminar muestra ${muestra.item_numero}?`)) return;
-                                                setVerificacionData(prev => ({
-                                                    ...prev,
-                                                    muestras_verificadas: prev.muestras_verificadas
-                                                        .filter((_, i) => i !== index)
-                                                        .map((m, i) => ({ ...m, item_numero: i + 1 }))
-                                                }));
+                                                if (verificacionData.muestras_verificadas.length <= 1) {
+                                                    toast.error('No se puede eliminar la única muestra.');
+                                                    return;
+                                                }
+                                                setPendingDeleteIndex(index);
+                                                setDeleteConfirmText('');
                                             }} className="hover:opacity-70 text-lg text-red-500" title="Eliminar">🗑️</button>
                                         </td>
                                     </tr>
@@ -1261,6 +1261,73 @@ const VerificacionMuestrasForm: React.FC = () => {
                     </div>
                 </div>
             )}
+            {pendingDeleteIndex !== null && (() => {
+                const m = verificacionData.muestras_verificadas[pendingDeleteIndex];
+                const code = m?.codigo_lem || '';
+                const displayCode = code || `Muestra ${m?.item_numero}`;
+                const matchTarget = code || String(m?.item_numero);
+                const isMatch = deleteConfirmText.trim() === matchTarget.trim();
+                return (
+                    <div className="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true">
+                        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity" onClick={() => setPendingDeleteIndex(null)} />
+                        <div className="flex min-h-screen items-center justify-center p-4">
+                            <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+                                <div className="px-8 pt-8 pb-6">
+                                    <div className="flex flex-col items-center text-center">
+                                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 mb-5">
+                                            <Trash2 className="h-7 w-7 text-red-600" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-slate-900 mb-1">Eliminar muestra</h3>
+                                        <p className="text-sm text-slate-500 mb-4">
+                                            Esta acción no se puede deshacer. Para confirmar, escribe el código de la muestra:
+                                        </p>
+                                        <div className="w-full p-3 bg-red-50 rounded-xl border border-red-100 mb-4">
+                                            <p className="text-sm font-bold text-red-700 font-mono tracking-wide">{displayCode}</p>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={deleteConfirmText}
+                                            onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                            placeholder={`Escribe "${matchTarget}" para confirmar`}
+                                            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-center font-mono focus:border-red-400 focus:ring-2 focus:ring-red-400/20 outline-none transition-all"
+                                            autoFocus
+                                            autoComplete="off"
+                                            data-lpignore="true"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="px-8 pb-8 flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setPendingDeleteIndex(null)}
+                                        className="flex-1 rounded-xl bg-slate-50 border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={!isMatch}
+                                        onClick={() => {
+                                            setVerificacionData(prev => ({
+                                                ...prev,
+                                                muestras_verificadas: prev.muestras_verificadas
+                                                    .filter((_, i) => i !== pendingDeleteIndex)
+                                                    .map((m, i) => ({ ...m, item_numero: i + 1 }))
+                                            }));
+                                            setPendingDeleteIndex(null);
+                                            setDeleteConfirmText('');
+                                            toast.success('Muestra eliminada');
+                                        }}
+                                        className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+                                    >
+                                        Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }
