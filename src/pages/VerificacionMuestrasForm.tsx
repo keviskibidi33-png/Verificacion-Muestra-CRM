@@ -67,6 +67,40 @@ interface MuestraVerificada {
     pesar?: string;
 }
 
+const normalizePerpendicularidadValue = (value: unknown): boolean | undefined => {
+    if (value === null || value === undefined || value === '' || value === '-') {
+        return undefined;
+    }
+
+    if (typeof value === 'boolean') {
+        return value;
+    }
+
+    if (typeof value === 'string') {
+        const normalized = value.trim().toUpperCase();
+        if (!normalized || normalized === '-') {
+            return undefined;
+        }
+        if (['TRUE', '1', 'SI', 'SÍ', 'CUMPLE'].includes(normalized)) {
+            return true;
+        }
+        if (['FALSE', '0', 'NO', 'NO CUMPLE'].includes(normalized)) {
+            return false;
+        }
+    }
+
+    return undefined;
+};
+
+const normalizeSamplePerpendicularidad = (sample: MuestraVerificada): MuestraVerificada => ({
+    ...sample,
+    perpendicularidad_sup1: normalizePerpendicularidadValue(sample.perpendicularidad_sup1),
+    perpendicularidad_sup2: normalizePerpendicularidadValue(sample.perpendicularidad_sup2),
+    perpendicularidad_inf1: normalizePerpendicularidadValue(sample.perpendicularidad_inf1),
+    perpendicularidad_inf2: normalizePerpendicularidadValue(sample.perpendicularidad_inf2),
+    perpendicularidad_medida: normalizePerpendicularidadValue(sample.perpendicularidad_medida),
+});
+
 interface VerificacionMuestrasData {
     id?: number;
     numero_verificacion: string;
@@ -186,16 +220,18 @@ const formatLemCode = (value: string): string => {
 const hasVerificacionSampleData = (sample: MuestraVerificada | undefined): boolean => {
     if (!sample) return false;
 
+    const normalizedSample = normalizeSamplePerpendicularidad(sample);
+
     const textFields = [
-        sample.codigo_lem,
-        sample.tipo_testigo,
-        sample.aceptacion_diametro,
-        sample.planitud_superior_aceptacion,
-        sample.planitud_inferior_aceptacion,
-        sample.planitud_depresiones_aceptacion,
-        sample.accion_realizar,
-        sample.conformidad,
-        sample.pesar,
+        normalizedSample.codigo_lem,
+        normalizedSample.tipo_testigo,
+        normalizedSample.aceptacion_diametro,
+        normalizedSample.planitud_superior_aceptacion,
+        normalizedSample.planitud_inferior_aceptacion,
+        normalizedSample.planitud_depresiones_aceptacion,
+        normalizedSample.accion_realizar,
+        normalizedSample.conformidad,
+        normalizedSample.pesar,
     ];
 
     if (textFields.some((value) => typeof value === 'string' && value.trim() !== '' && value.trim() !== '-')) {
@@ -203,32 +239,35 @@ const hasVerificacionSampleData = (sample: MuestraVerificada | undefined): boole
     }
 
     const numericFields = [
-        sample.diametro_1_mm,
-        sample.diametro_2_mm,
-        sample.tolerancia_porcentaje,
-        sample.longitud_1_mm,
-        sample.longitud_2_mm,
-        sample.longitud_3_mm,
-        sample.masa_muestra_aire_g,
+        normalizedSample.diametro_1_mm,
+        normalizedSample.diametro_2_mm,
+        normalizedSample.tolerancia_porcentaje,
+        normalizedSample.longitud_1_mm,
+        normalizedSample.longitud_2_mm,
+        normalizedSample.longitud_3_mm,
+        normalizedSample.masa_muestra_aire_g,
     ];
 
     if (numericFields.some((value) => value !== undefined && value !== null && String(value).trim() !== '')) {
         return true;
     }
 
-    return Boolean(
-        sample.perpendicularidad_sup1 ||
-        sample.perpendicularidad_sup2 ||
-        sample.perpendicularidad_inf1 ||
-        sample.perpendicularidad_inf2 ||
-        sample.perpendicularidad_medida
-    );
+    return [
+        normalizedSample.perpendicularidad_sup1,
+        normalizedSample.perpendicularidad_sup2,
+        normalizedSample.perpendicularidad_inf1,
+        normalizedSample.perpendicularidad_inf2,
+        normalizedSample.perpendicularidad_medida,
+    ].some((value) => value !== undefined);
 };
 
 const sanitizeVerificacionSamples = (samples: MuestraVerificada[] | undefined): MuestraVerificada[] => {
     if (!Array.isArray(samples)) return [];
 
-    const meaningful = samples.filter((sample) => hasVerificacionSampleData(sample));
+    const meaningful = samples
+        .map((sample) => normalizeSamplePerpendicularidad(sample))
+        .filter((sample) => hasVerificacionSampleData(sample));
+
     return meaningful.map((sample, index) => ({
         ...sample,
         item_numero: index + 1,
@@ -244,7 +283,7 @@ const toNullableNumber = (value: unknown): number | null => {
 };
 
 const normalizeSampleForApi = (sample: MuestraVerificada, index: number): MuestraVerificada => ({
-    ...sample,
+    ...normalizeSamplePerpendicularidad(sample),
     item_numero: index + 1,
     diametro_1_mm: toNullableNumber(sample.diametro_1_mm),
     diametro_2_mm: toNullableNumber(sample.diametro_2_mm),
@@ -419,11 +458,11 @@ const VerificacionMuestrasForm: React.FC = () => {
                             item_numero: idx + 1,
                             codigo_lem: formatLemCode(m.codigo_lem || ''),
                             tipo_testigo: m.tipo_testigo || '-',
-                            perpendicularidad_sup1: '-',
-                            perpendicularidad_sup2: '-',
-                            perpendicularidad_inf1: '-',
-                            perpendicularidad_inf2: '-',
-                            perpendicularidad_medida: '-',
+                            perpendicularidad_sup1: undefined,
+                            perpendicularidad_sup2: undefined,
+                            perpendicularidad_inf1: undefined,
+                            perpendicularidad_inf2: undefined,
+                            perpendicularidad_medida: undefined,
                             planitud_superior_aceptacion: '-',
                             planitud_inferior_aceptacion: '-',
                             planitud_depresiones_aceptacion: '-',
@@ -498,11 +537,11 @@ const VerificacionMuestrasForm: React.FC = () => {
                         accion_realizar: normAccion,
                         conformidad: normConformidad,
                         // Handle legacy field mapping if needed
-                        perpendicularidad_sup1: m.perpendicularidad_sup1 !== null ? m.perpendicularidad_sup1 : m.perpendicularidad_p1,
-                        perpendicularidad_sup2: m.perpendicularidad_sup2 !== null ? m.perpendicularidad_sup2 : m.perpendicularidad_p2,
-                        perpendicularidad_inf1: m.perpendicularidad_inf1 !== null ? m.perpendicularidad_inf1 : m.perpendicularidad_p3,
-                        perpendicularidad_inf2: m.perpendicularidad_inf2 !== null ? m.perpendicularidad_inf2 : m.perpendicularidad_p4,
-                        perpendicularidad_medida: m.perpendicularidad_medida !== null ? m.perpendicularidad_medida : m.perpendicularidad_cumple,
+                        perpendicularidad_sup1: normalizePerpendicularidadValue(m.perpendicularidad_sup1 !== null ? m.perpendicularidad_sup1 : m.perpendicularidad_p1),
+                        perpendicularidad_sup2: normalizePerpendicularidadValue(m.perpendicularidad_sup2 !== null ? m.perpendicularidad_sup2 : m.perpendicularidad_p2),
+                        perpendicularidad_inf1: normalizePerpendicularidadValue(m.perpendicularidad_inf1 !== null ? m.perpendicularidad_inf1 : m.perpendicularidad_p3),
+                        perpendicularidad_inf2: normalizePerpendicularidadValue(m.perpendicularidad_inf2 !== null ? m.perpendicularidad_inf2 : m.perpendicularidad_p4),
+                        perpendicularidad_medida: normalizePerpendicularidadValue(m.perpendicularidad_medida !== null ? m.perpendicularidad_medida : m.perpendicularidad_cumple),
                     };
                 }),
                 fecha_verificacion: formatDateForInput(data.fecha_verificacion),
@@ -609,11 +648,11 @@ const VerificacionMuestrasForm: React.FC = () => {
                         item_numero: idx + 1,
                         codigo_lem: formatLemCode(item.codigo_muestra_lem || item.codigo_muestra || ''),
                         tipo_testigo: '-',
-                        perpendicularidad_sup1: '-',
-                        perpendicularidad_sup2: '-',
-                        perpendicularidad_inf1: '-',
-                        perpendicularidad_inf2: '-',
-                        perpendicularidad_medida: '-',
+                        perpendicularidad_sup1: undefined,
+                        perpendicularidad_sup2: undefined,
+                        perpendicularidad_inf1: undefined,
+                        perpendicularidad_inf2: undefined,
+                        perpendicularidad_medida: undefined,
                         planitud_superior_aceptacion: '-',
                         planitud_inferior_aceptacion: '-',
                         planitud_depresiones_aceptacion: '-',
@@ -706,11 +745,11 @@ const VerificacionMuestrasForm: React.FC = () => {
             item_numero,
             codigo_lem: '',
             tipo_testigo: '-',
-            perpendicularidad_sup1: '-',
-            perpendicularidad_sup2: '-',
-            perpendicularidad_inf1: '-',
-            perpendicularidad_inf2: '-',
-            perpendicularidad_medida: '-',
+            perpendicularidad_sup1: undefined,
+            perpendicularidad_sup2: undefined,
+            perpendicularidad_inf1: undefined,
+            perpendicularidad_inf2: undefined,
+            perpendicularidad_medida: undefined,
             planitud_superior_aceptacion: '-',
             planitud_inferior_aceptacion: '-',
             planitud_depresiones_aceptacion: '-',
