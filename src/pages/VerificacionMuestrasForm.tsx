@@ -17,7 +17,7 @@ import ConfirmModal from '../components/ui/ConfirmModal';
 
 const EQUIPMENT_OPTIONS = ['-', 'EQP-0023'];
 const BERNIER_OPTIONS = ['-', 'EQP-0101'];
-const LAINAS_1_OPTIONS = ['-', 'INS-0189'];
+const LAINAS_1_OPTIONS = ['-', 'INS-0189', 'INS-0213'];
 const LAINAS_2_OPTIONS = ['-', 'INS-0193'];
 const ESCUADRA_OPTIONS = ['-', 'INS-0190'];
 
