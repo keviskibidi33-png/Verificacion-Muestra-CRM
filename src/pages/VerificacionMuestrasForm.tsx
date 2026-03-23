@@ -15,7 +15,7 @@ import ConfirmModal from '../components/ui/ConfirmModal';
 
 // --- Constants & Options ---
 
-const EQUIPMENT_OPTIONS = ['-', 'EQP-0023'];
+const EQUIPMENT_OPTIONS = ['-', 'INS-0054'];
 const BERNIER_OPTIONS = ['-', 'EQP-0101'];
 const LAINAS_1_OPTIONS = ['-', 'INS-0189', 'INS-0213'];
 const LAINAS_2_OPTIONS = ['-', 'INS-0193'];
@@ -1249,7 +1249,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                                     equipo_lainas_1: 'INS-0189',
                                     equipo_lainas_2: 'INS-0193',
                                     equipo_escuadra: 'INS-0190',
-                                    equipo_balanza: 'EQP-0023'
+                                    equipo_balanza: 'INS-0054'
                                 }))}
                                 className="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline flex items-center gap-1"
                             >
