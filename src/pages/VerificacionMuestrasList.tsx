@@ -31,7 +31,7 @@ const VerificacionMuestrasList: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterExcel, setFilterExcel] = useState<string>('TODOS');
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(100);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [verificacionToDelete, setVerificacionToDelete] = useState<{ id: number; numero: string } | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -44,7 +44,7 @@ const VerificacionMuestrasList: React.FC = () => {
         try {
             setLoading(true);
             setError(null);
-            const data = await apiService.getVerificaciones(0, 1000);
+            const data = await apiService.getVerificaciones();
             setVerificaciones(data);
         } catch (err: any) {
             console.error('Error cargando verificaciones:', err);
