@@ -304,7 +304,7 @@ export const apiService = {
         return response.data
     },
 
-    getVerificaciones: async (skip = 0, limit = 100): Promise<any[]> => {
+    getVerificaciones: async (skip = 0, limit = 1000): Promise<any[]> => {
         const response = await api.get(`/api/verificacion/?skip=${skip}&limit=${limit}`)
         return response.data
     },
