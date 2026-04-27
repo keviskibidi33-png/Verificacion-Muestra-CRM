@@ -170,9 +170,13 @@ const formatDateForInput = (dateStr: string | undefined): string => {
     if (!dateStr) return '';
     // If it's already YYYY-MM-DD, return it
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-    // If it's DD/MM/YYYY, convert to YYYY-MM-DD
+    // If it's YYYY/MM/DD, convert to YYYY-MM-DD
     const parts = dateStr.split('/');
     if (parts.length === 3) {
+        if (parts[0].length === 4) {
+            return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        }
+        // Legacy DD/MM/YYYY
         return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
     }
     return dateStr;
@@ -180,10 +184,10 @@ const formatDateForInput = (dateStr: string | undefined): string => {
 
 const formatDateForDB = (dateStr: string | undefined): string => {
     if (!dateStr) return '';
-    // If it's YYYY-MM-DD, convert to DD/MM/YYYY
+    // If it's YYYY-MM-DD, convert to YYYY/MM/DD
     const parts = dateStr.split('-');
     if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        return `${parts[0]}/${parts[1]}/${parts[2]}`;
     }
     // If it's already ISO or other, we might want to normalize it
     return dateStr;
@@ -1112,10 +1116,10 @@ const VerificacionMuestrasForm: React.FC = () => {
                                             </select>
                                         </td>
                                         <td className="px-3 py-2 border border-gray-300 bg-sky-50">
-                                            <input type="number" step="0.01" value={muestra.diametro_1_mm || ''} onChange={(e) => handleMuestraChange(index, 'diametro_1_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                            <input type="number" min="0" step="0.01" value={muestra.diametro_1_mm || ''} onChange={(e) => handleMuestraChange(index, 'diametro_1_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
                                         </td>
                                         <td className="px-3 py-2 border border-gray-300 bg-sky-50">
-                                            <input type="number" step="0.01" value={muestra.diametro_2_mm || ''} onChange={(e) => handleMuestraChange(index, 'diametro_2_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                            <input type="number" min="0" step="0.01" value={muestra.diametro_2_mm || ''} onChange={(e) => handleMuestraChange(index, 'diametro_2_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
                                         </td>
                                         <td className="px-3 py-2 border border-gray-300 text-[15px] font-normal text-black bg-sky-50">{muestra.tolerancia_porcentaje}%</td>
                                         <td className="px-3 py-2 border border-gray-300 text-center bg-sky-50">
@@ -1127,13 +1131,13 @@ const VerificacionMuestrasForm: React.FC = () => {
                                         </td>
                                         {/* Longitud */}
                                         <td className="px-3 py-2 border border-gray-300 bg-slate-50">
-                                            <input type="number" step="0.01" value={muestra.longitud_1_mm || ''} onChange={(e) => handleMuestraChange(index, 'longitud_1_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                            <input type="number" min="0" step="0.01" value={muestra.longitud_1_mm || ''} onChange={(e) => handleMuestraChange(index, 'longitud_1_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
                                         </td>
                                         <td className="px-3 py-2 border border-gray-300 bg-slate-50">
-                                            <input type="number" step="0.01" value={muestra.longitud_2_mm || ''} onChange={(e) => handleMuestraChange(index, 'longitud_2_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                            <input type="number" min="0" step="0.01" value={muestra.longitud_2_mm || ''} onChange={(e) => handleMuestraChange(index, 'longitud_2_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
                                         </td>
                                         <td className="px-3 py-2 border border-gray-300 bg-slate-50">
-                                            <input type="number" step="0.01" value={muestra.longitud_3_mm || ''} onChange={(e) => handleMuestraChange(index, 'longitud_3_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                            <input type="number" min="0" step="0.01" value={muestra.longitud_3_mm || ''} onChange={(e) => handleMuestraChange(index, 'longitud_3_mm', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
                                         </td>
                                         {/* Perpendicularidad */}
                                         {['sup1', 'sup2', 'inf1', 'inf2', 'medida'].map((f) => {
@@ -1201,7 +1205,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                                             </select>
                                         </td>
                                         <td className="px-3 py-2 border border-gray-300 bg-rose-50">
-                                            <input type="number" step="0.001" value={muestra.masa_muestra_aire_g || ''} onChange={(e) => handleMuestraChange(index, 'masa_muestra_aire_g', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
+                                            <input type="number" min="0" step="0.001" value={muestra.masa_muestra_aire_g || ''} onChange={(e) => handleMuestraChange(index, 'masa_muestra_aire_g', e.target.value)} className="w-20 text-[15px] border-0 border-b border-gray-300 bg-transparent focus:ring-blue-500 focus:border-blue-500 font-normal text-black" />
                                         </td>
                                         <td className="px-3 py-2 border border-gray-300 text-[15px] text-center bg-rose-50">
                                             {muestra.pesar ? (
