@@ -176,7 +176,7 @@ const formatDateForInput = (dateStr: string | undefined): string => {
         if (parts[0].length === 4) {
             return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
         }
-        // Legacy DD/MM/YYYY
+        // Legacy YYYY/MM/DDYY
         return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
     }
     return dateStr;
