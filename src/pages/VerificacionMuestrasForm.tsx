@@ -124,7 +124,7 @@ interface VerificacionMuestrasData {
 
 // --- Helper Components ---
 
-const InputField = React.memo(({ label, name, value, onChange, type = "text", placeholder = "", required = false, list }: any) => (
+const InputField = React.memo(({ label, name, value, onChange, type = "text", placeholder = "", required = false, list, ...rest }: any) => (
     <div className="group">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 ml-0.5">
             {label} {required && <span className="text-red-500">*</span>}
@@ -138,6 +138,7 @@ const InputField = React.memo(({ label, name, value, onChange, type = "text", pl
             className="block w-full rounded-lg border-gray-200 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500/20 focus:bg-white transition-all duration-200 px-3 py-2.5 shadow-sm hover:border-gray-300"
             placeholder={placeholder}
             required={required}
+            {...rest}
         />
     </div>
 ));
@@ -166,31 +167,39 @@ const SelectField = React.memo(({ label, name, value, onChange, options }: any) 
 ));
 // --- Helper Functions ---
 
-const formatDateForInput = (dateStr: string | undefined): string => {
+const normalizeDateToIso = (dateStr: string | undefined): string => {
     if (!dateStr) return '';
-    // If it's already YYYY-MM-DD, return it
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-    // If it's YYYY/MM/DD, convert to YYYY-MM-DD
-    const parts = dateStr.split('/');
+
+    const value = dateStr.trim();
+    if (!value) return '';
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+    const isoMatch = value.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+    if (isoMatch) {
+        const [, year, month, day] = isoMatch;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
+    const slashMatch = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+        const [, day, month, year] = slashMatch;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
+    const parts = value.split(/[/-]/);
     if (parts.length === 3) {
         if (parts[0].length === 4) {
             return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
         }
-        // Legacy YYYY/MM/DDYY
         return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
     }
-    return dateStr;
+
+    return value;
 };
 
 const formatDateForDB = (dateStr: string | undefined): string => {
-    if (!dateStr) return '';
-    // If it's YYYY-MM-DD, convert to YYYY/MM/DD
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-        return `${parts[0]}/${parts[1]}/${parts[2]}`;
-    }
-    // If it's already ISO or other, we might want to normalize it
-    return dateStr;
+    return normalizeDateToIso(dateStr);
 };
 
 const formatLemCode = (value: string): string => {
@@ -376,7 +385,7 @@ const VerificacionMuestrasForm: React.FC = () => {
         numero_verificacion: '',
         codigo_documento: 'FOR-LAB-015',
         version: '01',
-        fecha_documento: new Date().toLocaleDateString('es-PE'),
+        fecha_documento: new Date().toISOString().split('T')[0],
         pagina: '1 de 1',
         verificado_por: '',
         fecha_verificacion: new Date().toISOString().split('T')[0],
@@ -546,9 +555,9 @@ const VerificacionMuestrasForm: React.FC = () => {
                         perpendicularidad_inf1: normalizePerpendicularidadValue(m.perpendicularidad_inf1 !== null ? m.perpendicularidad_inf1 : m.perpendicularidad_p3),
                         perpendicularidad_inf2: normalizePerpendicularidadValue(m.perpendicularidad_inf2 !== null ? m.perpendicularidad_inf2 : m.perpendicularidad_p4),
                         perpendicularidad_medida: normalizePerpendicularidadValue(m.perpendicularidad_medida !== null ? m.perpendicularidad_medida : m.perpendicularidad_cumple),
-                    };
-                }),
-                fecha_verificacion: formatDateForInput(data.fecha_verificacion),
+                };
+            }),
+                fecha_verificacion: normalizeDateToIso(data.fecha_verificacion),
                 equipo_bernier: data.equipo_bernier || '-',
                 equipo_lainas_1: data.equipo_lainas_1 || '-',
                 equipo_lainas_2: data.equipo_lainas_2 || '-',
@@ -666,7 +675,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                     }));
                     
                     // Formatear la fecha de recepción para que coincida con el estado del componente
-                    const fechaRecepcion = orden.fecha_recepcion ? formatDateForDB(orden.fecha_recepcion) : verificacionData.fecha_verificacion;
+                    const fechaRecepcion = orden.fecha_recepcion ? normalizeDateToIso(orden.fecha_recepcion) : verificacionData.fecha_verificacion;
 
                     setVerificacionData(prev => ({
                         ...prev,
@@ -951,7 +960,7 @@ const VerificacionMuestrasForm: React.FC = () => {
                                         {suggestions.map((s, i) => {
                                             const isVerifDone = s.estados?.verificacion === 'completado';
                                             const samplesCount = s.muestras_count || 0;
-                                            const receptionDate = s.fecha_recepcion ? formatDateForInput(s.fecha_recepcion) : 'N/A';
+                                            const receptionDate = s.fecha_recepcion ? normalizeDateToIso(s.fecha_recepcion) : 'N/A';
                                             
                                             return (
                                                 <div 
@@ -1034,7 +1043,17 @@ const VerificacionMuestrasForm: React.FC = () => {
                             </div>
                         </div>
                         <InputField label="Verificado por" name="verificado_por" value={verificacionData.verificado_por || ''} onChange={handleInputChange} placeholder="Nombre del responsable" />
-                        <InputField label="Fecha Verificación" name="fecha_verificacion" value={formatDateForInput(verificacionData.fecha_verificacion)} onChange={handleInputChange} type="date" />
+                        <InputField
+                            label="Fecha Verificación"
+                            name="fecha_verificacion"
+                            value={normalizeDateToIso(verificacionData.fecha_verificacion)}
+                            onChange={handleInputChange}
+                            type="text"
+                            placeholder="YYYY-MM-DD"
+                            inputMode="numeric"
+                            pattern="\\d{4}-\\d{2}-\\d{2}"
+                            title="Usa el formato YYYY-MM-DD"
+                        />
                         <InputField label="Cliente" name="cliente" value={verificacionData.cliente || ''} onChange={handleInputChange} placeholder="Nombre del cliente" />
                     </div>
                 </div>

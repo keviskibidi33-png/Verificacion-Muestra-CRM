@@ -36,6 +36,29 @@ interface VerificacionData {
     muestras_verificadas: MuestraVerificada[];
 }
 
+const formatDateToIso = (dateStr: string | undefined): string => {
+    if (!dateStr) return '-';
+
+    const value = dateStr.trim();
+    if (!value) return '-';
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+    const isoMatch = value.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+    if (isoMatch) {
+        const [, year, month, day] = isoMatch;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
+    const slashMatch = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+        const [, day, month, year] = slashMatch;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+
+    return value;
+};
+
 const VerificacionMuestrasDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -130,7 +153,7 @@ const VerificacionMuestrasDetail: React.FC = () => {
                             Verificación {verificacion.numero_verificacion}
                         </h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-1">
-                            {verificacion.cliente} - {new Date(verificacion.fecha_verificacion).toLocaleDateString()}
+                            {verificacion.cliente} - {formatDateToIso(verificacion.fecha_verificacion)}
                         </p>
                     </div>
                     <div className="flex space-x-2">
@@ -181,7 +204,7 @@ const VerificacionMuestrasDetail: React.FC = () => {
                         </div>
                         <div>
                             <dt className="text-sm font-medium text-gray-500">Fecha Verificación</dt>
-                            <dd className="mt-1 text-sm text-gray-900 dark:text-gray-200">{verificacion.fecha_verificacion}</dd>
+                            <dd className="mt-1 text-sm text-gray-900 dark:text-gray-200">{formatDateToIso(verificacion.fecha_verificacion)}</dd>
                         </div>
                         <div>
                             <dt className="text-sm font-medium text-gray-500">Código Documento</dt>
