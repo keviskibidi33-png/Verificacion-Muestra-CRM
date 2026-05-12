@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 interface DeleteConfirmModalProps {
@@ -23,14 +24,28 @@ export default function DeleteConfirmModal({
     isMultiple = false,
     count = 1
 }: DeleteConfirmModalProps) {
+    const [confirmText, setConfirmText] = useState('');
+
     if (!isOpen) return null;
+
+    const handleClose = () => {
+        setConfirmText('');
+        onClose();
+    };
+
+    const handleConfirm = () => {
+        if (confirmText === 'ELIMINAR') {
+            onConfirm();
+            setConfirmText('');
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-[100] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             {/* Glassmorphism Backdrop */}
             <div
                 className="fixed inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity duration-300"
-                onClick={!isLoading ? onClose : undefined}
+                onClick={!isLoading ? handleClose : undefined}
             ></div>
 
             <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
@@ -68,6 +83,22 @@ export default function DeleteConfirmModal({
                                 </p>
                             </div>
                         </div>
+
+                        {/* Confirmation Input */}
+                        <div className="mt-5">
+                            <p className="text-xs text-slate-500 mb-2 text-center">
+                                Escribe <strong>ELIMINAR</strong> para confirmar
+                            </p>
+                            <input
+                                type="text"
+                                value={confirmText}
+                                onChange={(e) => setConfirmText(e.target.value)}
+                                placeholder="ELIMINAR"
+                                autoComplete="off"
+                                data-lpignore="true"
+                                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                            />
+                        </div>
                     </div>
 
                     {/* Actions */}
@@ -75,8 +106,8 @@ export default function DeleteConfirmModal({
                         <button
                             type="button"
                             className="inline-flex items-center justify-center rounded-2xl bg-red-600 hover:bg-red-700 shadow-red-500/20 px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:pointer-events-none w-full sm:w-auto min-w-[120px]"
-                            onClick={onConfirm}
-                            disabled={isLoading}
+                            onClick={handleConfirm}
+                            disabled={isLoading || confirmText !== 'ELIMINAR'}
                         >
                             {isLoading ? (
                                 <div className="flex items-center gap-2">
@@ -91,7 +122,7 @@ export default function DeleteConfirmModal({
                         <button
                             type="button"
                             className="inline-flex items-center justify-center rounded-2xl bg-slate-50 px-6 py-3.5 text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all duration-200 w-full sm:w-auto border border-slate-200"
-                            onClick={onClose}
+                            onClick={handleClose}
                             disabled={isLoading}
                         >
                             Cancelar
