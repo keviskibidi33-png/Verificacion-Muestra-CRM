@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import { apiService, api } from '../services/api';
 import { getApiErrorMessage } from '../utils/apiError';
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
+import authService from '../services/authService';
 
 interface VerificacionMuestra {
     id: number;
@@ -25,6 +26,8 @@ interface VerificacionMuestra {
 
 const VerificacionMuestrasList: React.FC = () => {
     const navigate = useNavigate();
+    const user = authService.getCurrentUser();
+    const canDelete = !!(user && ['admin', 'tecnico', 'oficina_tecnica'].includes(user.role));
     const [verificaciones, setVerificaciones] = useState<VerificacionMuestra[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -289,13 +292,15 @@ const VerificacionMuestrasList: React.FC = () => {
                                                     📥 Descargar
                                                 </button>
                                             )}
-                                            <button
-                                                onClick={() => handleDelete(verificacion.id, verificacion.numero_verificacion)}
-                                                className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors"
-                                                title="Eliminar"
-                                            >
-                                                🗑️ Eliminar
-                                            </button>
+                                            {canDelete && (
+                                                <button
+                                                    onClick={() => handleDelete(verificacion.id, verificacion.numero_verificacion)}
+                                                    className="text-red-600 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors"
+                                                    title="Eliminar"
+                                                >
+                                                    🗑️ Eliminar
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

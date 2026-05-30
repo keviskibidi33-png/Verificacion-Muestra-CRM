@@ -5,6 +5,7 @@ import DeleteConfirmModal from '../components/ui/DeleteConfirmModal';
 import { toast } from 'react-hot-toast';
 import { apiService, api } from '../services/api';
 import { getApiErrorMessage } from '../utils/apiError';
+import authService from '../services/authService';
 
 interface MuestraVerificada {
     id: number;
@@ -62,6 +63,8 @@ const formatDateToIso = (dateStr: string | undefined): string => {
 const VerificacionMuestrasDetail: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const user = authService.getCurrentUser();
+    const canDelete = !!(user && ['admin', 'tecnico', 'oficina_tecnica'].includes(user.role));
     const [verificacion, setVerificacion] = useState<VerificacionData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -175,12 +178,14 @@ const VerificacionMuestrasDetail: React.FC = () => {
                         >
                             Generar Excel
                         </button>
-                        <button
-                            onClick={() => setShowDeleteModal(true)}
-                            className="px-3 py-2 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200"
-                        >
-                            Eliminar
-                        </button>
+                        {canDelete && (
+                            <button
+                                onClick={() => setShowDeleteModal(true)}
+                                className="px-3 py-2 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+                            >
+                                Eliminar
+                            </button>
+                        )}
                     </div>
                 </div>
 
