@@ -543,7 +543,7 @@ const VerificacionMuestrasForm: React.FC = () => {
     const cargarVerificacion = async (id: number) => {
         try {
             const data = await apiService.getVerificacion(id);
-            setVerificacionData({
+            const loadedData = {
                 ...data,
                 muestras_verificadas: (data.muestras_verificadas || []).map((m: any) => {
                     // Normalización robusta de cadenas
@@ -578,8 +578,8 @@ const VerificacionMuestrasForm: React.FC = () => {
                         perpendicularidad_inf1: normalizePerpendicularidadValue(m.perpendicularidad_inf1 !== null ? m.perpendicularidad_inf1 : m.perpendicularidad_p3),
                         perpendicularidad_inf2: normalizePerpendicularidadValue(m.perpendicularidad_inf2 !== null ? m.perpendicularidad_inf2 : m.perpendicularidad_p4),
                         perpendicularidad_medida: normalizePerpendicularidadValue(m.perpendicularidad_medida !== null ? m.perpendicularidad_medida : m.perpendicularidad_cumple),
-                };
-            }),
+                    };
+                }),
                 fecha_verificacion: normalizeDateToIso(data.fecha_verificacion),
                 equipo_bernier: data.equipo_bernier || '-',
                 equipo_lainas_1: data.equipo_lainas_1 || '-',
@@ -588,7 +588,9 @@ const VerificacionMuestrasForm: React.FC = () => {
                 equipo_balanza: data.equipo_balanza || '-',
                 recepcion_id: data.recepcion_id,
                 numero_ot: data.numero_ot
-            });
+            };
+            setVerificacionData(loadedData);
+            updateReference(loadedData);
         } catch (error) {
             console.error('Error cargando verificación:', error);
             toast.error('Error al cargar la verificación');
@@ -609,13 +611,13 @@ const VerificacionMuestrasForm: React.FC = () => {
         }
     });
 
-    useAutoSaveDB({
+    const { updateReference } = useAutoSaveDB({
         data: verificacionData,
         enabled: !!id,
         onSave: async (data) => {
             if (id) {
                 await apiService.updateVerificacion(parseInt(id), buildPayloadForApi(data));
-    setLastSaved(new Date());
+                setLastSaved(new Date());
             }
         },
         onError: () => toast.error('Error al guardar cambios automáticamente')
