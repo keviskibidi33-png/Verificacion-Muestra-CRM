@@ -680,10 +680,24 @@ const VerificacionMuestrasForm: React.FC = () => {
             if (orden) {
                 const samples = orden.muestras || orden.items || [];
                 if (samples.length > 0) {
+                    const missingCalcFields = samples.filter((item: any) => {
+                        const d1 = item.diametro_1_mm ?? item.diametro1 ?? item.d1;
+                        const d2 = item.diametro_2_mm ?? item.diametro2 ?? item.d2;
+                        const l1 = item.longitud_1_mm ?? item.longitud1 ?? item.l1;
+                        const l2 = item.longitud_2_mm ?? item.longitud2 ?? item.l2;
+                        const l3 = item.longitud_3_mm ?? item.longitud3 ?? item.l3;
+                        return !d1 || !d2 || !l1 || !l2 || !l3;
+                    }).length;
+
                     const nuevasMuestras: MuestraVerificada[] = samples.map((item: any, idx: number) => ({
                         item_numero: idx + 1,
                         codigo_lem: formatLemCode(item.codigo_muestra_lem || item.codigo_muestra || ''),
                         tipo_testigo: '-',
+                        diametro_1_mm: item.diametro_1_mm ?? item.diametro1 ?? item.d1 ?? '',
+                        diametro_2_mm: item.diametro_2_mm ?? item.diametro2 ?? item.d2 ?? '',
+                        longitud_1_mm: item.longitud_1_mm ?? item.longitud1 ?? item.l1 ?? '',
+                        longitud_2_mm: item.longitud_2_mm ?? item.longitud2 ?? item.l2 ?? '',
+                        longitud_3_mm: item.longitud_3_mm ?? item.longitud3 ?? item.l3 ?? '',
                         perpendicularidad_sup1: undefined,
                         perpendicularidad_sup2: undefined,
                         perpendicularidad_inf1: undefined,
@@ -706,7 +720,11 @@ const VerificacionMuestrasForm: React.FC = () => {
                         muestras_verificadas: nuevasMuestras
                     }));
                     
-                    toast.success(`${nuevasMuestras.length} muestras importadas correctamente`);
+                    if (missingCalcFields > 0) {
+                        toast.error('Debes completar D1, D2 y longitud 1, 2, 3 para que el sistema haga el cálculo automáticamente');
+                    } else {
+                        toast.success('Cálculo validado y aplicado según la información importada');
+                    }
                 } else {
                     toast.error('No se encontraron muestras en esta recepción');
                 }
