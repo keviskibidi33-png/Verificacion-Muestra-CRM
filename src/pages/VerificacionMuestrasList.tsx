@@ -131,7 +131,7 @@ const VerificacionMuestrasList: React.FC = () => {
     };
 
     const handleNewClick = () => {
-        navigate('/verificacion/nueva');
+        navigate('/nuevo');
     };
 
     if (loading) {
@@ -153,7 +153,7 @@ const VerificacionMuestrasList: React.FC = () => {
                             Verificaciones de Muestras Cilíndricas
                         </h1>
                         <Link
-                            to="/verificacion/nueva"
+                            to="/nuevo"
                             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                         >
                             Nueva Verificación
@@ -186,7 +186,16 @@ const VerificacionMuestrasList: React.FC = () => {
             searchPlaceholder="Buscar por número recepción, cliente, código documento..."
             onNewClick={handleNewClick}
             newButtonText="Nueva Verificación"
+            actions={
+                <button
+                    onClick={() => navigate('/importar')}
+                    className="btn-secondary flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold px-4 py-2 rounded-lg transition-colors"
+                >
+                    📥 Importar Excel
+                </button>
+            }
             filters={
+
                 <select
                     value={filterExcel}
                     onChange={(e) => setFilterExcel(e.target.value)}
