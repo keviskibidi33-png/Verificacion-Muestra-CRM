@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { useAutoSaveDB } from '../hooks/useAutoSaveDB';
@@ -311,6 +311,7 @@ const normalizeSampleForApi = (sample: MuestraVerificada, index: number): Muestr
 
 const VerificacionMuestrasForm: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const location = useLocation();
     const handleItemsTableKeyDown = useEnterTableNavigation();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -514,8 +515,30 @@ const VerificacionMuestrasForm: React.FC = () => {
     useEffect(() => {
         if (id) {
             cargarVerificacion(parseInt(id));
+        } else if (location.state?.importedData) {
+            const data = location.state.importedData;
+            setVerificacionData({
+                ...initialData,
+                ...data,
+                muestras_verificadas: (data.muestras_verificadas || []).map((m: any) => ({
+                    ...m,
+                    aceptacion_diametro: m.aceptacion_diametro?.toUpperCase(),
+                    planitud_superior_aceptacion: m.planitud_superior_aceptacion?.toUpperCase(),
+                    planitud_inferior_aceptacion: m.planitud_inferior_aceptacion?.toUpperCase(),
+                    planitud_depresiones_aceptacion: m.planitud_depresiones_aceptacion?.toUpperCase(),
+                    perpendicularidad_sup1: normalizePerpendicularidadValue(m.perpendicularidad_sup1),
+                    perpendicularidad_sup2: normalizePerpendicularidadValue(m.perpendicularidad_sup2),
+                    perpendicularidad_inf1: normalizePerpendicularidadValue(m.perpendicularidad_inf1),
+                    perpendicularidad_inf2: normalizePerpendicularidadValue(m.perpendicularidad_inf2),
+                    perpendicularidad_medida: normalizePerpendicularidadValue(m.perpendicularidad_medida),
+                })),
+                fecha_verificacion: normalizeDateToIso(data.fecha_verificacion || data.fecha_documento)
+            });
+            toast.success('Vista previa de importación cargada');
+            // Clear location state to prevent reload on page refresh/action
+            window.history.replaceState({}, document.title);
         }
-    }, [id]);
+    }, [id, location.state]);
 
     const cargarVerificacion = async (id: number) => {
         try {

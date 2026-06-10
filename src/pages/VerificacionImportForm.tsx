@@ -134,8 +134,8 @@ export default function VerificacionImportForm() {
                     'Content-Type': 'multipart/form-data',
                 },
             });
-            toast.success('Excel importado y guardado correctamente');
-            navigate(`/detalle/${response.data.id}`);
+            toast.success('Excel importado correctamente - Vista previa cargada');
+            navigate('/nuevo', { state: { importedData: response.data } });
         } catch (err: any) {
             console.error('Import error:', err);
             toast.error(getApiErrorMessage(err, 'Error al importar verificación'));
