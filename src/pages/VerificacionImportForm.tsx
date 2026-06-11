@@ -121,6 +121,14 @@ export default function VerificacionImportForm() {
         }
 
         setLoading(true);
+        // Garantizar que si el parent tiene un token más reciente (o si estamos dentro de iframe), lo recuperemos antes de enviar
+        if (window.parent !== window) {
+            console.log('[ImportForm] Requesting token sync before uploading file...');
+            window.parent.postMessage({ type: 'REQUEST_TOKEN', source: 'verificacion-crm' }, '*');
+            // Dar un brevísimo tiempo para que se procese el postMessage/recepción en App.tsx
+            await new Promise(resolve => setTimeout(resolve, 150));
+        }
+
         const formData = new FormData();
         formData.append('file', selectedFile);
         formData.append('numero_verificacion', numeroVerificacion);

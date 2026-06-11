@@ -94,21 +94,34 @@ const AccessGate = ({ children }: { children: React.ReactNode }) => {
     // Escuchar token del parent y re-autorizar si llega
     useEffect(() => {
         const cleanup = setupParentTokenListener();
-        // Verificar nuevamente tras posible recepción del token
-        const recheckTimer = setTimeout(() => {
-            if (isAuthorized === false && localStorage.getItem('token')) {
+        // Verificar frecuentemente al inicio para evitar esperas largas
+        const recheckInterval = setInterval(() => {
+            if (localStorage.getItem('token')) {
                 setIsAuthorized(true);
+                clearInterval(recheckInterval);
             }
-        }, 1000);
+        }, 100);
+        
         return () => {
             cleanup();
-            clearTimeout(recheckTimer);
+            clearInterval(recheckInterval);
         };
-    }, [isAuthorized]);
+    }, []);
 
     if (isAuthorized === null) return null;
 
     if (!isAuthorized) {
+        // Si estamos en iframe, podemos seguir esperando un momento antes de redirigir a Login
+        if (window.parent !== window && !localStorage.getItem('token')) {
+            return (
+                <div className="min-h-screen bg-background flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-2">
+                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-sm text-muted-foreground font-medium">Sincronizando sesión...</p>
+                    </div>
+                </div>
+            );
+        }
         // Redirigir a login standalone si no está autorizado
         return <Navigate to={`/login?redirect=${encodeURIComponent(window.location.pathname)}`} replace />;
     }
