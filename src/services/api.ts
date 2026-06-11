@@ -15,7 +15,6 @@ export const api = axios.create({
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
-        console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, { hasToken: !!token });
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -26,19 +25,110 @@ api.interceptors.request.use(
     }
 );
 
-// Interceptor para manejar errores y usar mock cuando el backend no esté disponible
+/**
+ * Solicita un token fresco al parent window (crm-geofal) vía postMessage.
+ * Resuelve el aislamiento de localStorage entre dominios en la arquitectura micro-frontend.
+ * Timeout: 3 segundos.
+ */
+const requestTokenFromParent = (): Promise<string | null> => {
+    return new Promise((resolve) => {
+        if (window.parent === window) {
+            // No estamos en iframe, no hay parent que responda
+            resolve(null);
+            return;
+        }
+
+        const requestId = `token-req-${Date.now()}`;
+        const timeout = setTimeout(() => {
+            window.removeEventListener('message', handler);
+            resolve(null);
+        }, 3000);
+
+        const handler = (event: MessageEvent) => {
+            const d = event.data;
+            if (
+                d &&
+                (d.type === 'SET_TOKEN' || d.type === 'TOKEN_REFRESH' || d.type === 'AUTH_TOKEN') &&
+                d.token
+            ) {
+                clearTimeout(timeout);
+                window.removeEventListener('message', handler);
+                localStorage.setItem('token', d.token);
+                resolve(d.token);
+            }
+        };
+
+        window.addEventListener('message', handler);
+        // Enviar petición al parent
+        window.parent.postMessage(
+            { type: 'TOKEN_REFRESH_REQUEST', requestId, source: 'verificacion-crm' },
+            '*'
+        );
+    });
+};
+
+
+// Interceptor de respuesta: maneja errores de red y 401 con refresh automático
+let _isRefreshing = false;
+let _pendingRetries: Array<(token: string | null) => void> = [];
+
 api.interceptors.response.use(
     (response) => response,
-    (error) => {
-        console.error('API Error:', error)
-        // Si es un error de conexión, usar datos mock
+    async (error) => {
+        const originalRequest = error.config;
+
+        // Si es error de conexión, usar mock
         if (error.code === 'ERR_NETWORK' || error.code === 'ERR_CONNECTION_REFUSED') {
-            console.log('Backend no disponible, usando datos mock')
-            return Promise.reject({ useMock: true, originalError: error })
+            console.log('Backend no disponible, usando datos mock');
+            return Promise.reject({ useMock: true, originalError: error });
         }
-        return Promise.reject(error)
+
+        // Si es 401 y no es un reintento ya hecho
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            if (_isRefreshing) {
+                // Esperar al token que otro reintento ya está solicitando
+                return new Promise((resolve, reject) => {
+                    _pendingRetries.push((token) => {
+                        if (token) {
+                            originalRequest.headers.Authorization = `Bearer ${token}`;
+                            resolve(api(originalRequest));
+                        } else {
+                            reject(error);
+                        }
+                    });
+                });
+            }
+
+            _isRefreshing = true;
+            console.warn('[API] 401 recibido — solicitando token fresco al parent...');
+
+            try {
+                const freshToken = await requestTokenFromParent();
+
+                if (freshToken) {
+                    console.log('[API] Token fresco recibido, reintentando petición...');
+                    // Notificar a peticiones en espera
+                    _pendingRetries.forEach((cb) => cb(freshToken));
+                    _pendingRetries = [];
+                    // Reintentar la petición original con el nuevo token
+                    originalRequest.headers.Authorization = `Bearer ${freshToken}`;
+                    return api(originalRequest);
+                } else {
+                    console.error('[API] No se pudo obtener token fresco del parent');
+                    _pendingRetries.forEach((cb) => cb(null));
+                    _pendingRetries = [];
+                }
+            } finally {
+                _isRefreshing = false;
+            }
+        }
+
+        console.error('API Error:', error);
+        return Promise.reject(error);
     }
-)
+);
 
 // Tipos de datos
 export interface OrdenTrabajo {
