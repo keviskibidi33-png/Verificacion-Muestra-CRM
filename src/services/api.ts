@@ -28,7 +28,7 @@ api.interceptors.request.use(
 /**
  * Solicita un token fresco al parent window (crm-geofal) vía postMessage.
  * Resuelve el aislamiento de localStorage entre dominios en la arquitectura micro-frontend.
- * Timeout: 3 segundos.
+ * Timeout: 10 segundos (supabase.auth.refreshSession puede ser lento en cold starts).
  */
 const requestTokenFromParent = (): Promise<string | null> => {
     return new Promise((resolve) => {
@@ -42,7 +42,7 @@ const requestTokenFromParent = (): Promise<string | null> => {
         const timeout = setTimeout(() => {
             window.removeEventListener('message', handler);
             resolve(null);
-        }, 3000);
+        }, 10000);
 
         const handler = (event: MessageEvent) => {
             const d = event.data;
