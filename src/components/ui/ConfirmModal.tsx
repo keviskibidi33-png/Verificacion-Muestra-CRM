@@ -65,12 +65,15 @@ export default function ConfirmModal({
         <div className="fixed inset-0 z-[100] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             {/* Glassmorphism Backdrop */}
             <div 
-                className="fixed inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity duration-300"
+                className="fixed inset-0 z-0 bg-slate-900/40 backdrop-blur-md transition-opacity duration-300 pointer-events-auto"
                 onClick={!isLoading ? onClose : undefined}
             ></div>
 
-            <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-                <div className="relative transform overflow-hidden rounded-[2rem] bg-white dark:bg-slate-950 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md animate-in fade-in zoom-in duration-300 border border-slate-200 dark:border-slate-800">
+            <div className="relative z-10 flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+                <div
+                    className="relative transform overflow-hidden rounded-[2rem] bg-white dark:bg-slate-950 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md animate-in fade-in zoom-in duration-300 border border-slate-200 dark:border-slate-800"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     
                     <div className="px-8 pt-10 pb-8">
                         <div className="flex flex-col items-center text-center">

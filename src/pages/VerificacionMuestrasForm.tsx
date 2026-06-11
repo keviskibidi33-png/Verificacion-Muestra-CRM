@@ -1348,7 +1348,7 @@ const VerificacionMuestrasForm: React.FC = () => {
             {/* Success Modal for edit mode */}
             {isSuccessModalOpen && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
-                    <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 text-center">
+                    <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                             <CheckCircle2 className="w-10 h-10 text-green-600" />
                         </div>
@@ -1374,9 +1374,9 @@ const VerificacionMuestrasForm: React.FC = () => {
                 const isMatch = deleteConfirmText.trim() === matchTarget.trim();
                 return (
                     <div className="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true">
-                        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity" onClick={() => setPendingDeleteIndex(null)} />
-                        <div className="flex min-h-screen items-center justify-center p-4">
-                            <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden">
+                        <div className="fixed inset-0 z-0 bg-slate-900/40 backdrop-blur-md transition-opacity pointer-events-auto" onClick={() => setPendingDeleteIndex(null)} />
+                        <div className="relative z-10 flex min-h-screen items-center justify-center p-4">
+                            <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden" onClick={(e) => e.stopPropagation()}>
                                 <div className="px-8 pt-8 pb-6">
                                     <div className="flex flex-col items-center text-center">
                                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 mb-5">
