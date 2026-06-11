@@ -26,6 +26,46 @@ api.interceptors.request.use(
 );
 
 /**
+ * Intenta obtener un token válido desde la sesión de Supabase almacenada en localStorage.
+ * Lee la key sb-<project-ref>-auth-token que Supabase guarda automáticamente.
+ * Esto permite que verificacion funcione standalone sin necesidad de parent iframe.
+ */
+export const getSupabaseToken = (): string | null => {
+    const direct = localStorage.getItem('token');
+    if (direct && direct !== 'local-dev-mock-token-verificacion') return direct;
+
+    const extractToken = (parsed: any): string | null => {
+        if (!parsed) return null;
+        if (typeof parsed?.access_token === 'string' && parsed.access_token) return parsed.access_token;
+        if (typeof parsed?.currentSession?.access_token === 'string' && parsed.currentSession.access_token) return parsed.currentSession.access_token;
+        if (typeof parsed?.session?.access_token === 'string' && parsed.session.access_token) return parsed.session.access_token;
+        if (Array.isArray(parsed) && typeof parsed[0]?.access_token === 'string' && parsed[0].access_token) return parsed[0].access_token;
+        return null;
+    };
+
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith('sb-') || !key.endsWith('-auth-token')) continue;
+
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+
+        try {
+            const parsed = JSON.parse(raw);
+            const token = extractToken(parsed);
+            if (token) {
+                localStorage.setItem('token', token);
+                return token;
+            }
+        } catch {
+            // ignore malformed entries
+        }
+    }
+
+    return null;
+};
+
+/**
  * Solicita un token fresco al parent window (crm-geofal) vía postMessage.
  * Resuelve el aislamiento de localStorage entre dominios en la arquitectura micro-frontend.
  * Timeout: 10 segundos (supabase.auth.refreshSession puede ser lento en cold starts).
@@ -108,18 +148,26 @@ api.interceptors.response.use(
                 const freshToken = await requestTokenFromParent();
 
                 if (freshToken) {
-                    console.log('[API] Token fresco recibido, reintentando petición...');
-                    // Notificar a peticiones en espera
+                    console.log('[API] Token fresco recibido del parent, reintentando petición...');
                     _pendingRetries.forEach((cb) => cb(freshToken));
                     _pendingRetries = [];
-                    // Reintentar la petición original con el nuevo token
                     originalRequest.headers.Authorization = `Bearer ${freshToken}`;
                     return api(originalRequest);
-                } else {
-                    console.error('[API] No se pudo obtener token fresco del parent');
-                    _pendingRetries.forEach((cb) => cb(null));
-                    _pendingRetries = [];
                 }
+
+                // Fallback: intentar sesión de Supabase en localStorage (standalone mode)
+                const supabaseToken = getSupabaseToken();
+                if (supabaseToken) {
+                    console.log('[API] Token obtenido de sesión Supabase local, reintentando...');
+                    _pendingRetries.forEach((cb) => cb(supabaseToken));
+                    _pendingRetries = [];
+                    originalRequest.headers.Authorization = `Bearer ${supabaseToken}`;
+                    return api(originalRequest);
+                }
+
+                console.error('[API] No se pudo obtener token fresco (ni del parent ni de Supabase)');
+                _pendingRetries.forEach((cb) => cb(null));
+                _pendingRetries = [];
             } finally {
                 _isRefreshing = false;
             }

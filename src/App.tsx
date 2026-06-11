@@ -5,6 +5,7 @@ import VerificacionMuestrasForm from './pages/VerificacionMuestrasForm'
 import VerificacionMuestrasDetail from './pages/VerificacionMuestrasDetail'
 import VerificacionImportForm from './pages/VerificacionImportForm'
 import Login from './pages/Login'
+import { getSupabaseToken } from './services/api'
 
 /**
  * Escucha mensajes postMessage del parent (crm-geofal) para recibir el token JWT.
@@ -48,7 +49,14 @@ const TokenHandler = () => {
             return;
         }
 
-        // 2. Solicitar token al parent si estamos en iframe
+        // 2. Intentar sesión de Supabase existente (crml-geofal ya logeado en el navegador)
+        const supabaseToken = getSupabaseToken();
+        if (supabaseToken) {
+            console.log('[TokenHandler] Token found in Supabase session, using it');
+            return;
+        }
+
+        // 3. Solicitar token al parent si estamos en iframe
         if (window.parent !== window) {
             console.log('[TokenHandler] Running as iframe, requesting token from parent...');
             window.parent.postMessage({ type: 'REQUEST_TOKEN', source: 'verificacion-crm' }, '*');
@@ -74,16 +82,16 @@ const AccessGate = ({ children }: { children: React.ReactNode }) => {
             localStorage.setItem('token', tokenFromUrl);
         }
 
-        // 2. Verificar token disponible (URL o localStorage)
-        const token = tokenFromUrl || localStorage.getItem('token');
+        // 2. Verificar token disponible (URL, localStorage directo, o sesión Supabase)
+        const token = tokenFromUrl || localStorage.getItem('token') || getSupabaseToken();
         const isEmbedded = window.parent !== window;
-        const authorized = !!tokenFromUrl || (isEmbedded && !!token) || !!token;
+        const authorized = !!tokenFromUrl || !!token;
         setIsAuthorized(authorized);
 
         // 3. Si no hay token y estamos en iframe, esperar respuesta del parent
         if (!authorized && isEmbedded) {
             const timeout = setTimeout(() => {
-                const latestToken = localStorage.getItem('token');
+                const latestToken = localStorage.getItem('token') || getSupabaseToken();
                 if (latestToken) setIsAuthorized(true);
                 else setIsAuthorized(false);
             }, 800);
@@ -96,7 +104,7 @@ const AccessGate = ({ children }: { children: React.ReactNode }) => {
         const cleanup = setupParentTokenListener();
         // Verificar frecuentemente al inicio para evitar esperas largas
         const recheckInterval = setInterval(() => {
-            if (localStorage.getItem('token')) {
+            if (localStorage.getItem('token') || getSupabaseToken()) {
                 setIsAuthorized(true);
                 clearInterval(recheckInterval);
             }
