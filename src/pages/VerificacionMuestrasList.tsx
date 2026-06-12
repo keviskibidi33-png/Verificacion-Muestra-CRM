@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ModuleLayout from '../components/layout/ModuleLayout';
 import Pagination from '../components/ui/Pagination';
@@ -6,7 +6,7 @@ import DeleteConfirmModal from '../components/ui/DeleteConfirmModal';
 import { toast } from 'react-hot-toast';
 import { apiService, api } from '../services/api';
 import { getApiErrorMessage } from '../utils/apiError';
-import { CheckCircleIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, EllipsisVerticalIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import authService from '../services/authService';
 
 interface VerificacionMuestra {
@@ -38,9 +38,22 @@ const VerificacionMuestrasList: React.FC = () => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [verificacionToDelete, setVerificacionToDelete] = useState<{ id: number; numero: string } | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [iframeModalOpen, setIframeModalOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         cargarVerificaciones();
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const cargarVerificaciones = async () => {
@@ -187,12 +200,41 @@ const VerificacionMuestrasList: React.FC = () => {
             onNewClick={handleNewClick}
             newButtonText="Nueva Verificación"
             actions={
-                <button
-                    onClick={() => navigate('/importar')}
-                    className="btn-secondary flex items-center gap-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold px-4 py-2 rounded-lg transition-colors"
-                >
-                    📥 Importar Excel
-                </button>
+                <div className="flex items-center gap-2" ref={menuRef}>
+                    <div className="relative">
+                        <button
+                            onClick={() => setMenuOpen(!menuOpen)}
+                            className="flex items-center justify-center w-9 h-9 border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 rounded-lg transition-colors"
+                            title="Más opciones"
+                        >
+                            <EllipsisVerticalIcon className="h-5 w-5" />
+                        </button>
+                        {menuOpen && (
+                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50">
+                                <button
+                                    onClick={() => {
+                                        setMenuOpen(false);
+                                        navigate('/importar');
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
+                                >
+                                    <span className="text-slate-400">📥</span>
+                                    Validar Excel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setMenuOpen(false);
+                                        setIframeModalOpen(true);
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3"
+                                >
+                                    <span className="text-slate-400">📋</span>
+                                    Importar Verificaciones
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
             }
             filters={
 
@@ -345,6 +387,28 @@ const VerificacionMuestrasList: React.FC = () => {
                 itemName={verificacionToDelete ? `Verificación: ${verificacionToDelete.numero}` : undefined}
                 isLoading={isDeleting}
             />
+
+            {/* Modal iframe Importar Verificaciones */}
+            {iframeModalOpen && (
+                <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 sm:p-8">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                            <h3 className="font-bold text-slate-900">Importar Verificaciones</h3>
+                            <button
+                                onClick={() => setIframeModalOpen(false)}
+                                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                <XMarkIcon className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <iframe
+                            src="/importar"
+                            className="flex-1 w-full border-0"
+                            title="Importar Verificaciones"
+                        />
+                    </div>
+                </div>
+            )}
         </ModuleLayout>
     );
 };
