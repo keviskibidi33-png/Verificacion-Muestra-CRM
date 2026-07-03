@@ -186,20 +186,13 @@ export default function VerificacionImportForm() {
                             onBlur={() => {
                                 setTimeout(() => setShowSuggestions(false), 200);
                                 if (numeroVerificacion) {
-                                    let val = numeroVerificacion.trim();
-                                    if (!val.toUpperCase().includes('-REC')) {
-                                        if (/-\d{2}$/.test(val)) {
-                                            val = val.replace(/-(\d{2})$/, '-REC-$1');
-                                        } else {
-                                            val = `${val}-REC`;
-                                        }
-                                        setNumeroVerificacion(val);
-                                    }
-                                    checkStatus(val);
+                                    // IMPORTANTE: No se muta el número con -REC.
+                                    // Debe coincidir exactamente con el número de recepción.
+                                    checkStatus(numeroVerificacion.trim());
                                 }
                             }}
                             className="block w-full rounded-xl border-gray-200 bg-slate-50 text-sm focus:border-blue-500 focus:ring-blue-500/20 focus:bg-white px-4 py-3 shadow-sm transition-all"
-                            placeholder="Ej: 1006-26 o 1006-REC"
+                            placeholder="Ej: 1343-26 (mismo número que en Recepción)"
                             autoComplete="off"
                             data-lpignore="true"
                             required

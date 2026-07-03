@@ -652,20 +652,12 @@ const VerificacionMuestrasForm: React.FC = () => {
         setVerificacionData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Handler especial para numero_verificacion con validación y autocompletado de -REC
+    // Handler para numero_verificacion: busca la recepción sin mutar el número.
+    // IMPORTANTE: No se agrega sufijo -REC automáticamente. El número debe coincidir
+    // exactamente con el de la recepción para que TracingService los vincule correctamente.
     const handleNumeroVerificacionBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        let value = e.target.value.trim();
+        const value = e.target.value.trim();
         if (value && !id) {
-            // Autocompletar con -REC si no lo tiene (y no tiene ya un año -YY al final)
-            if (!value.toUpperCase().includes('-REC')) {
-                // Si tiene formato NNNN-YY, insertar -REC antes del año
-                if (/-\d{2}$/.test(value)) {
-                    value = value.replace(/-(\d{2})$/, '-REC-$1');
-                } else {
-                    value = `${value}-REC`;
-                }
-                setVerificacionData(prev => ({ ...prev, numero_verificacion: value }));
-            }
             buscarRecepcion(value);
         }
     };
