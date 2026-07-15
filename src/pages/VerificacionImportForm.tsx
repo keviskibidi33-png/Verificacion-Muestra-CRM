@@ -52,7 +52,7 @@ export default function VerificacionImportForm() {
         setRecepcionStatus({ estado: 'buscando' });
         try {
             const data = await apiService.checkStatus(numero);
-            if (data.exists) {
+            if (data.exists && data.recepcion?.id) {
                 const isVerifDone = data.verificacion?.status === 'completado';
                 setRecepcionStatus({
                     estado: isVerifDone ? 'ocupado' : 'disponible',
@@ -63,14 +63,14 @@ export default function VerificacionImportForm() {
                 });
             } else {
                 setRecepcionStatus({
-                    estado: 'disponible',
-                    mensaje: '✅ Número disponible para registro de verificación'
+                    estado: 'ocupado',
+                    mensaje: '❌ No existe registro de Recepción para este número. El flujo debe iniciar en Recepción.'
                 });
             }
         } catch (error) {
             setRecepcionStatus({
-                estado: 'disponible',
-                mensaje: '⚠️ Error de conexión - Validando de todas formas'
+                estado: 'ocupado',
+                mensaje: '⚠️ Error de conexión al validar número'
             });
         }
     };
@@ -113,6 +113,10 @@ export default function VerificacionImportForm() {
         e.preventDefault();
         if (!numeroVerificacion) {
             toast.error('El número de recepción/verificación es obligatorio');
+            return;
+        }
+        if (recepcionStatus.estado !== 'disponible') {
+            toast.error(recepcionStatus.mensaje || 'Valide el número de recepción antes de continuar');
             return;
         }
         if (!selectedFile) {
@@ -291,7 +295,7 @@ export default function VerificacionImportForm() {
                         </button>
                         <button
                             type="submit"
-                            disabled={loading || !numeroVerificacion || !selectedFile}
+                            disabled={loading || !numeroVerificacion || !selectedFile || recepcionStatus.estado !== 'disponible'}
                             className="flex-1 py-3 px-4 bg-[#0070F3] hover:bg-blue-600 active:bg-blue-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {loading ? (

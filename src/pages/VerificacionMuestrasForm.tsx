@@ -422,7 +422,7 @@ const VerificacionMuestrasForm: React.FC = () => {
         try {
             const data = await apiService.checkStatus(numero);
 
-            if (data.exists) {
+            if (data.exists && data.recepcion?.id) {
                 const isRecepcionDone = data.recepcion?.status === 'completado';
                 const isVerificacionDone = data.verificacion?.status === 'completado';
                 const isCompresionDone = data.compresion?.status === 'completado' || data.compresion?.status === 'en_proceso';
@@ -493,8 +493,8 @@ const VerificacionMuestrasForm: React.FC = () => {
 
             } else {
                 setRecepcionStatus({
-                    estado: 'disponible',
-                    mensaje: '✅ Número disponible para registro',
+                    estado: 'ocupado',
+                    mensaje: '❌ No existe registro de Recepción para este número. El flujo debe iniciar en Recepción.',
                     formatos: {
                         recepcion: false,
                         verificacion: false,
@@ -505,8 +505,8 @@ const VerificacionMuestrasForm: React.FC = () => {
         } catch (error) {
             console.error('Error buscando estado:', error);
             setRecepcionStatus({
-                estado: 'disponible',
-                mensaje: '⚠️ Error de conexión - Verifique manualmente'
+                estado: 'ocupado',
+                mensaje: '⚠️ Error de conexión al validar número'
             });
         }
     }, [verificacionData.cliente]); // Keep dependency minimal to avoid loops
@@ -815,6 +815,10 @@ const VerificacionMuestrasForm: React.FC = () => {
     const handleSubmit = async () => {
         if (!verificacionData.numero_verificacion) {
             toast.error('Número de verificación es obligatorio');
+            return;
+        }
+        if (!id && recepcionStatus.estado !== 'disponible') {
+            toast.error(recepcionStatus.mensaje || 'No se puede guardar: valide el número de verificación');
             return;
         }
         setIsSubmitting(true);
