@@ -27,7 +27,7 @@ interface VerificacionMuestra {
 const VerificacionMuestrasList: React.FC = () => {
     const navigate = useNavigate();
     const user = authService.getCurrentUser();
-    const canDelete = !!(user && ['admin', 'tecnico', 'oficina_tecnica'].includes(user.role));
+    const canDelete = !!(user && (['admin', 'tecnico', 'oficina_tecnica', 'jefe_laboratorio'].includes(user.role) || user.email === 'bsaravia@geofal.com.pe'));
     const [verificaciones, setVerificaciones] = useState<VerificacionMuestra[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
